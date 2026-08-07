@@ -92,6 +92,8 @@ button { cursor: pointer; }
 .trend-wrap { overflow-x: auto; padding: 0 12px 10px; }
 .trend-chart { display: block; min-width: 570px; width: 100%; height: 238px; }
 .grid-line { stroke: #ece9e4; stroke-width: 1; stroke-dasharray: 3 4; }
+.trend-bar { fill: #e58a69; fill-opacity: .16; stroke: #e58a69; stroke-opacity: .22; stroke-width: 1; transition: fill-opacity .18s ease; }
+.trend-bar:hover { fill-opacity: .28; }
 .axis-label { fill: #a3a4aa; font-size: 9px; font-family: Inter, ui-sans-serif, sans-serif; }
 
 .daily-panel { grid-column: 2; grid-row: span 2; }

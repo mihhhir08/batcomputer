@@ -104,7 +104,7 @@ function TrendChart({ logs, dates, jobSecuredOn }: { logs: Logs; dates: Date[]; 
       <div className="chart-legend" aria-label="Chart series">
         {series.map(({ name }) => (
           <button key={name} className={visible[name] ? "legend-chip active" : "legend-chip"} onClick={() => setVisible((old) => ({ ...old, [name]: !old[name] }))}>
-            <span style={{ background: colors[name] }} />{name}
+            <span style={{ background: colors[name] }} />{name === "Overall" ? "Overall + bars" : name}
           </button>
         ))}
       </div>
@@ -115,6 +115,11 @@ function TrendChart({ logs, dates, jobSecuredOn }: { logs: Logs; dates: Date[]; 
               <line x1="44" x2="740" y1={y(value)} y2={y(value)} className="grid-line" />
               <text x="6" y={y(value) + 4} className="axis-label">{value}%</text>
             </g>
+          ))}
+          {visible.Overall && series[0].values.map((value, index) => (
+            <rect key={`bar-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - 11} y={y(value)} width="22" height={y(0) - y(value)} rx="5">
+              <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
+            </rect>
           ))}
           {series.map(({ name, values }) => visible[name] && (
             <polyline
