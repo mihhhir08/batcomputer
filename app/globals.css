@@ -88,12 +88,13 @@ button { cursor: pointer; }
 .legend-chip { height: 25px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid transparent; border-radius: 7px; background: #f5f5f7; color: #999aa0; font-size: 9px; }
 .legend-chip span { width: 6px; height: 6px; border-radius: 50%; opacity: .35; }
 .legend-chip.active { border-color: #e3e3e7; background: #fff; color: #4b4c52; }
-.legend-chip.active span { opacity: 1; }
+.legend-chip.active span { opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent); }
 .trend-wrap { overflow-x: auto; padding: 0 12px 10px; }
 .trend-chart { display: block; min-width: 570px; width: 100%; height: 238px; }
 .grid-line { stroke: #ece9e4; stroke-width: 1; stroke-dasharray: 3 4; }
-.trend-bar { fill: #e58a69; fill-opacity: .16; stroke: #e58a69; stroke-opacity: .22; stroke-width: 1; transition: fill-opacity .18s ease; }
-.trend-bar:hover { fill-opacity: .28; }
+.trend-bar { fill: #ff5d35; fill-opacity: .27; stroke: #ff5d35; stroke-opacity: .52; stroke-width: 1; transition: fill-opacity .18s ease; }
+.trend-bar:hover { fill-opacity: .43; }
+.trend-line { filter: drop-shadow(0 2px 2px rgba(25, 33, 52, .12)); }
 .axis-label { fill: #a3a4aa; font-size: 9px; font-family: Inter, ui-sans-serif, sans-serif; }
 
 .daily-panel { grid-column: 2; grid-row: span 2; }

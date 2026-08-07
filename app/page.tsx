@@ -79,7 +79,7 @@ function average(values: number[]) {
   return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
 }
 
-function MiniLine({ values, color = "#e58a69" }: { values: number[]; color?: string }) {
+function MiniLine({ values, color = "#ff5d35" }: { values: number[]; color?: string }) {
   const points = values.map((value, index) => `${(index / Math.max(values.length - 1, 1)) * 100},${38 - (value / 100) * 34}`).join(" ");
   return (
     <svg className="mini-line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
@@ -91,7 +91,7 @@ function MiniLine({ values, color = "#e58a69" }: { values: number[]; color?: str
 
 function TrendChart({ logs, dates, jobSecuredOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null }) {
   const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Body: true, Content: true, Career: true });
-  const colors: Record<string, string> = { Overall: "#e58a69", Body: "#8dbce5", Content: "#d8ad72", Career: "#78c69c" };
+  const colors: Record<string, string> = { Overall: "#ff5d35", Body: "#2879ff", Content: "#f5a623", Career: "#16b364" };
   const series = Object.keys(colors).map((name) => ({
     name,
     values: dates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[name as keyof ReturnType<typeof categoryScores>]),
@@ -124,10 +124,11 @@ function TrendChart({ logs, dates, jobSecuredOn }: { logs: Logs; dates: Date[]; 
           {series.map(({ name, values }) => visible[name] && (
             <polyline
               key={name}
+              className="trend-line"
               points={values.map((value, index) => `${x(index)},${y(value)}`).join(" ")}
               fill="none"
               stroke={colors[name]}
-              strokeWidth={name === "Overall" ? 3.5 : 2.25}
+              strokeWidth={name === "Overall" ? 4 : 3}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
@@ -340,11 +341,11 @@ export default function Home() {
         <section className="kpi-grid" aria-label="Key metrics">
           <article className="kpi-card featured"><div className="kpi-top"><span>Weekly momentum</span><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}%</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>vs. {previousScore} last week</p></article>
           <article className="kpi-card"><div className="kpi-top"><span>Today’s commitments</span><span className="status-dot" /></div><div className="kpi-value">{completedToday}<small>/{commitmentTotal}</small></div><div className="segmented-progress" style={{ gridTemplateColumns: `repeat(${commitmentTotal}, 1fr)` }}>{Array.from({ length: commitmentTotal }, (_, i) => <span key={i} className={i < completedToday ? "filled" : ""} />)}</div><p>{commitmentTotal - completedToday === 0 ? "Daily mission complete" : `${commitmentTotal - completedToday} actions to close the day`}</p></article>
-          <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#8dbce5" /><p>Daily target · 10 applications</p></>}</article>
+          <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
           <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
             const log = logs[dateKey(date)] ?? EMPTY_LOG;
             return ((Number(log.x) + Number(log.linkedin) + Number(log.instagram)) / 3) * 100;
-          })} color="#d8ad72" /><p>Across X, LinkedIn & Instagram</p></article>
+          })} color="#f5a623" /><p>Across X, LinkedIn & Instagram</p></article>
         </section>
 
         <section className="dashboard-grid">
