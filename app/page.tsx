@@ -54,19 +54,24 @@ function addDays(date: Date, amount: number) {
   return next;
 }
 
-function score(log: DayLog) {
+function careerIsActive(logDate: string, jobSecuredOn: string | null) {
+  return !jobSecuredOn || logDate < jobSecuredOn;
+}
+
+function score(log: DayLog, logDate: string, jobSecuredOn: string | null) {
   const binaries = HABITS.reduce((sum, habit) => sum + Number(log[habit.key]), 0);
   const steps = Math.min(log.steps / 10000, 1);
   const jobs = Math.min(log.jobs / 10, 1);
-  return Math.round(((binaries + steps + jobs) / 8) * 100);
+  const careerActive = careerIsActive(logDate, jobSecuredOn);
+  return Math.round(((binaries + steps + (careerActive ? jobs : 0)) / (careerActive ? 8 : 7)) * 100);
 }
 
-function categoryScores(log: DayLog) {
+function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | null) {
   return {
-    Overall: score(log),
+    Overall: score(log, logDate, jobSecuredOn),
     Body: Math.round(((Number(log.cleanFood) + Number(log.protein) + Number(log.strength) + Math.min(log.steps / 10000, 1)) / 4) * 100),
     Content: Math.round(((Number(log.x) + Number(log.linkedin) + Number(log.instagram)) / 3) * 100),
-    Career: Math.round(Math.min(log.jobs / 10, 1) * 100),
+    Career: careerIsActive(logDate, jobSecuredOn) ? Math.round(Math.min(log.jobs / 10, 1) * 100) : 100,
   };
 }
 
@@ -84,12 +89,12 @@ function MiniLine({ values, color = "#e58a69" }: { values: number[]; color?: str
   );
 }
 
-function TrendChart({ logs, dates }: { logs: Logs; dates: Date[] }) {
+function TrendChart({ logs, dates, jobSecuredOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null }) {
   const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Body: true, Content: true, Career: true });
   const colors: Record<string, string> = { Overall: "#e58a69", Body: "#8dbce5", Content: "#d8ad72", Career: "#78c69c" };
   const series = Object.keys(colors).map((name) => ({
     name,
-    values: dates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG)[name as keyof ReturnType<typeof categoryScores>]),
+    values: dates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[name as keyof ReturnType<typeof categoryScores>]),
   }));
   const x = (index: number) => 44 + (index / Math.max(dates.length - 1, 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
@@ -171,6 +176,7 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [preview, setPreview] = useState(true);
   const [startDate, setStartDate] = useState(START_DATE);
+  const [jobSecuredOn, setJobSecuredOn] = useState<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [session, setSession] = useState<Session | null>(null);
@@ -187,8 +193,10 @@ export default function Home() {
     }
     const saved = window.localStorage.getItem("momentum-90-logs");
     const savedStart = window.localStorage.getItem("momentum-90-start");
+    const savedJobDate = window.localStorage.getItem("momentum-90-job-secured");
     queueMicrotask(() => {
       if (savedStart) setStartDate(savedStart);
+      if (savedJobDate) setJobSecuredOn(savedJobDate);
       if (saved) {
         setLogs(JSON.parse(saved));
         setPreview(false);
@@ -204,10 +212,11 @@ export default function Home() {
     const client = supabase;
     Promise.all([
       client.from("daily_logs").select("log_date,data").eq("user_id", session.user.id),
-      client.from("profiles").select("start_date").eq("user_id", session.user.id).maybeSingle(),
+      client.from("profiles").select("start_date,job_secured_on").eq("user_id", session.user.id).maybeSingle(),
     ]).then(([daily, profile]) => {
       if (daily.data) setLogs(Object.fromEntries(daily.data.map((row) => [row.log_date, { ...EMPTY_LOG, ...row.data }])));
       if (profile.data?.start_date) setStartDate(profile.data.start_date);
+      if (profile.data?.job_secured_on) setJobSecuredOn(profile.data.job_secured_on);
       setPreview(!profile.data);
       setHydrated(true);
     });
@@ -232,12 +241,14 @@ export default function Home() {
   const chartDates = Array.from({ length: 14 }, (_, index) => addDays(today, index - 13));
   const weekDates = chartDates.slice(-7);
   const previousWeekDates = chartDates.slice(0, 7);
-  const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG));
-  const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG));
+  const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn));
+  const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn));
   const weeklyScore = average(weekScores);
   const previousScore = average(previousScores);
   const weeklyDelta = weeklyScore - previousScore;
-  const completedToday = HABITS.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(todayLog.jobs >= 10);
+  const careerActiveToday = careerIsActive(todayKey, jobSecuredOn);
+  const commitmentTotal = careerActiveToday ? 8 : 7;
+  const completedToday = HABITS.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(careerActiveToday && todayLog.jobs >= 10);
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
   const totalPosts = Object.values(logs).reduce((sum, log) => sum + Number(log.x) + Number(log.linkedin) + Number(log.instagram), 0);
   const latestWeight = Object.entries(logs).sort(([a], [b]) => b.localeCompare(a)).find(([, log]) => log.weight)?.[1].weight ?? 0;
@@ -274,6 +285,14 @@ export default function Home() {
       supabase.from("profiles").upsert({ user_id: session.user.id, start_date: chosenStart, height_cm: 0, start_weight_kg: 0, waist_in: 0 });
     }
     setNotice(`Your 90-day workspace is ready. The challenge begins ${new Date(`${chosenStart}T12:00:00Z`).toLocaleDateString("en-CA", { month: "long", day: "numeric", timeZone: "UTC" })}.`);
+  }
+
+  function updateJobOutcome(date: string | null) {
+    setJobSecuredOn(date);
+    if (date) window.localStorage.setItem("momentum-90-job-secured", date);
+    else window.localStorage.removeItem("momentum-90-job-secured");
+    if (supabase && session) supabase.from("profiles").update({ job_secured_on: date }).eq("user_id", session.user.id);
+    setNotice(date ? "Career goal reached. Daily applications are now retired from your score." : "The job-search goal is active again.");
   }
 
   if (isSupabaseConfigured && !authReady) return <main className="loading-shell">Preparing your private workspace…</main>;
@@ -315,8 +334,8 @@ export default function Home() {
 
         <section className="kpi-grid" aria-label="Key metrics">
           <article className="kpi-card featured"><div className="kpi-top"><span>Weekly momentum</span><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}%</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>vs. {previousScore} last week</p></article>
-          <article className="kpi-card"><div className="kpi-top"><span>Today’s commitments</span><span className="status-dot" /></div><div className="kpi-value">{completedToday}<small>/8</small></div><div className="segmented-progress">{Array.from({ length: 8 }, (_, i) => <span key={i} className={i < completedToday ? "filled" : ""} />)}</div><p>{8 - completedToday === 0 ? "Daily mission complete" : `${8 - completedToday} actions to close the day`}</p></article>
-          <article className="kpi-card"><div className="kpi-top"><span>Job applications</span><span className="blue-dot" /></div><div className="kpi-value">{totalJobs}<small>total</small></div><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#8dbce5" /><p>Daily target · 10 applications</p></article>
+          <article className="kpi-card"><div className="kpi-top"><span>Today’s commitments</span><span className="status-dot" /></div><div className="kpi-value">{completedToday}<small>/{commitmentTotal}</small></div><div className="segmented-progress" style={{ gridTemplateColumns: `repeat(${commitmentTotal}, 1fr)` }}>{Array.from({ length: commitmentTotal }, (_, i) => <span key={i} className={i < completedToday ? "filled" : ""} />)}</div><p>{commitmentTotal - completedToday === 0 ? "Daily mission complete" : `${commitmentTotal - completedToday} actions to close the day`}</p></article>
+          <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#8dbce5" /><p>Daily target · 10 applications</p></>}</article>
           <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
             const log = logs[dateKey(date)] ?? EMPTY_LOG;
             return ((Number(log.x) + Number(log.linkedin) + Number(log.instagram)) / 3) * 100;
@@ -326,11 +345,11 @@ export default function Home() {
         <section className="dashboard-grid">
           <article className="panel chart-panel">
             <div className="panel-header"><div><p className="eyebrow">All systems</p><h2>Momentum trend</h2></div><span className="range-pill">Last 14 days</span></div>
-            <TrendChart logs={logs} dates={chartDates} />
+            <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} />
           </article>
 
           <article className="panel daily-panel" id="today">
-            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog) * 3.6}deg` } as React.CSSProperties}>{score(todayLog)}%</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog, todayKey, jobSecuredOn) * 3.6}deg` } as React.CSSProperties}>{score(todayLog, todayKey, jobSecuredOn)}%</span></div>
             <div className="habit-list">
               {HABITS.map((habit) => (
                 <label className="habit-row" key={habit.key}>
@@ -339,7 +358,7 @@ export default function Home() {
                 </label>
               ))}
               <div className="number-row"><span><strong>Daily steps</strong><small>Target · 10,000</small></span><div className="number-control"><input aria-label="Steps today" type="number" min="0" step="500" value={todayLog.steps || ""} placeholder="0" onChange={(e) => updateToday({ steps: Math.max(0, Number(e.target.value)) })} /><span>steps</span></div></div>
-              <div className="number-row"><span><strong>Job applications</strong><small>Target · 10</small></span><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div></div>
+              {careerActiveToday ? <div className="number-row"><span><strong>Job applications</strong><small>Target · 10</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · {new Date(`${jobSecuredOn}T12:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
             </div>
           </article>
 
@@ -347,8 +366,8 @@ export default function Home() {
             <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Where you’re gaining</h2></div><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span></div>
             <div className="comparison-chart">
               {(["Body", "Content", "Career"] as const).map((category) => {
-                const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG)[category]));
-                const prior = average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG)[category]));
+                const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[category]));
+                const prior = average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[category]));
                 return <div className="comparison-row" key={category}><span>{category}</span><div className="bar-stack"><i className="prior" style={{ width: `${prior}%` }} /><i className="current" style={{ width: `${current}%` }} /></div><strong>{current}%</strong></div>;
               })}
               <div className="bar-key"><span><i className="prior" />Previous week</span><span><i className="current" />This week</span></div>
@@ -364,7 +383,7 @@ export default function Home() {
             <div className="heatmap-wrap">
               <div className="heatmap" role="img" aria-label="90-day consistency map">
                 {challengeDays.map((date, index) => {
-                  const value = score(logs[dateKey(date)] ?? EMPTY_LOG);
+                  const value = score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn);
                   const future = date.getTime() > today.getTime();
                   const intensity = future ? "future" : value >= 75 ? "high" : value >= 40 ? "mid" : value > 0 ? "low" : "empty";
                   return <span key={dateKey(date)} className={`heat-cell ${intensity}`} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}%`} />;

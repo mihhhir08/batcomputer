@@ -1,12 +1,12 @@
 :root {
-  --ink: #e9e7e4;
-  --muted: #989793;
-  --line: #343432;
-  --paper: #232322;
-  --canvas: #1b1b1a;
+  --ink: #1e1d1b;
+  --muted: #7f7b75;
+  --line: #e6e2dc;
+  --paper: #ffffff;
+  --canvas: #f7f6f3;
   --violet: #e58a69;
-  --violet-soft: #3a2922;
-  --green: #78c69c;
+  --violet-soft: #fff0e9;
+  --green: #50a77c;
   --orange: #d8ad72;
   --blue: #8dbce5;
 }
@@ -69,7 +69,7 @@ button { cursor: pointer; }
 .kpi-value small { margin-left: 5px; color: #9a9ba1; font-size: 10px; font-weight: 520; letter-spacing: 0; }
 .kpi-card > p { margin: 5px 0 0; color: #a0a1a6; font-size: 9px; }
 .mini-line { display: block; width: 100%; height: 35px; margin-top: 3px; overflow: visible; }
-.chart-baseline { stroke: #393937; stroke-width: 1; }
+.chart-baseline { stroke: #ece9e4; stroke-width: 1; }
 .status-dot, .blue-dot, .orange-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px #e5f6ef; }
 .blue-dot { background: var(--blue); box-shadow: 0 0 0 3px #e7f1fd; }
 .orange-dot { background: var(--orange); box-shadow: 0 0 0 3px #fceedf; }
@@ -91,7 +91,7 @@ button { cursor: pointer; }
 .legend-chip.active span { opacity: 1; }
 .trend-wrap { overflow-x: auto; padding: 0 12px 10px; }
 .trend-chart { display: block; min-width: 570px; width: 100%; height: 238px; }
-.grid-line { stroke: #393937; stroke-width: 1; stroke-dasharray: 3 4; }
+.grid-line { stroke: #ece9e4; stroke-width: 1; stroke-dasharray: 3 4; }
 .axis-label { fill: #a3a4aa; font-size: 9px; font-family: Inter, ui-sans-serif, sans-serif; }
 
 .daily-panel { grid-column: 2; grid-row: span 2; }
@@ -226,6 +226,70 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 .auth-card { border-color: #393937; background: #232322; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
 .auth-card input { border-color: #43433f; background: #1d1d1c; color: #eceae7; }
 .auth-card > button { background: #e58a69; color: #1d1714; }
+
+/* Bright analytics finish with DataFast's warm accent language */
+.topbar h1, .panel h2, .kpi-value, .habit-copy strong, .number-row strong, .body-metrics strong, .photo-content h3, .milestone strong { color: #1e1d1b; }
+.topbar .eyebrow, .eyebrow { color: #8a857e; }
+.icon-button, .secondary-button, .range-pill, .legend-chip.active { border-color: #e2ded8; background: #fff; color: #625f5a; }
+.preview-banner { border-color: #f1c9b8; background: #fff0e9; color: #9f573e; }
+.preview-banner button.ghost-start { border-color: #eebda8; color: #a85d42; }
+.notice { background: #eaf7f1; border-color: #cbe8da; color: #28785c; }
+.delta { background: #f2f1ee; color: #77736d; }
+.delta.positive { background: #e8f6ef; color: #267d5f; }
+.status-dot { box-shadow: 0 0 0 3px #e2f3eb; }
+.blue-dot { box-shadow: 0 0 0 3px #e5f0f8; }
+.orange-dot { box-shadow: 0 0 0 3px #f8eedf; }
+.segmented-progress span { background: #ece9e4; }
+.panel { box-shadow: 0 1px 2px rgba(32,29,25,.025); }
+.legend-chip { background: #f4f2ef; color: #92908a; }
+.habit-row { border-bottom-color: #efede9; }
+.habit-row:hover { background: #faf9f7; }
+.custom-check { border-color: #d8d4ce; }
+.group-tag { background: #e9f6f0; color: #347d62; }
+.group-tag.content-tag { background: #fff0e8; color: #a96043; }
+.number-row { border-bottom-color: #efede9; }
+.number-control input, .stepper { border-color: #ddd9d3; background: #fff; color: #36332f; }
+.number-control input:focus { border-color: #dc8b6c; box-shadow: 0 0 0 3px #fff0e9; }
+.stepper button { background: #f7f5f2; color: #77736d; }
+.score-ring { background: radial-gradient(circle at center, #fff 66%, transparent 67%), conic-gradient(var(--green) var(--score), #ece9e4 0); color: #52504b; }
+.bar-stack .prior, .bar-key i { background: #e3dfd9; }
+.bar-key i.current { background: #e58a69; }
+.recovery-panel { background: linear-gradient(145deg, #fff5f0, #fffaf7); color: #2a211d; border-color: #f0d5c9; }
+.recovery-panel::after { background: radial-gradient(circle, rgba(229,138,105,.19), transparent 66%); }
+.recovery-icon { background: #f7ded3; color: #b75e40; }
+.recovery-panel .eyebrow { color: #a8634b; }
+.recovery-panel > p:not(.eyebrow) { color: #86736b; }
+.recovery-panel button { border-color: #eccbbb; background: #fff; color: #824a36; }
+.body-note { background: #f6f4f1; color: #7f7b75; }
+.body-note span { background: #e8e4de; }
+.editable-metric input { color: #1e1d1b; border-bottom-color: #c9c4bd; }
+.photo-preview { border-color: #d8d4ce; background: radial-gradient(circle at 60% 35%, #f0ede9, #e3dfda); }
+.photo-preview span { background: rgba(255,255,255,.86); color: #77736d; }
+.upload-button { background: #e58a69; color: #251711; }
+.milestone:not(:last-child)::before { background: #dedad4; }
+.milestone > span { border-color: #dedad4; background: #fff; color: #85817a; }
+.milestone.reached:not(:last-child)::before { background: #e6ae99; }
+.heat-cell { background: #ece8e2; }
+.heat-cell.future { background: #f7f5f2; box-shadow: inset 0 0 0 1px #e7e3dd; }
+.heat-cell.low { background: #f6d8ca; }
+.heat-cell.mid { background: #edae95; }
+.heat-cell.high { background: #e58a69; }
+.auth-shell, .loading-shell { background: radial-gradient(circle at 50% -10%, #fff0e9, transparent 35%), #f7f6f3; }
+.auth-card { border-color: #e3dfd9; background: #fff; box-shadow: 0 20px 60px rgba(57,42,34,.1); }
+.auth-card input { border-color: #ddd9d3; background: #fff; color: #1e1d1b; }
+.auth-card > button { background: #e58a69; color: #251711; }
+
+.job-controls { display: flex; align-items: center; gap: 7px; }
+.job-won-button, .job-secured-row button, .career-win-line button { border: 0; background: transparent; color: #b96749; font-size: 8px; font-weight: 650; }
+.job-won-button { height: 29px; padding: 0 8px; border: 1px solid #efc9b9; border-radius: 7px; background: #fff6f2; }
+.job-secured-row { min-height: 58px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px; color: #347d62; }
+.job-secured-row > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: #dff2e9; font-size: 11px; }
+.job-secured-row strong, .job-secured-row small { display: block; }
+.job-secured-row strong { color: #245f4a; font-size: 10px; }
+.job-secured-row small { margin-top: 3px; color: #77a08f; font-size: 8px; }
+.career-win-line { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 10px; border-top: 1px solid #e8e4de; color: #548a75; font-size: 9px; }
+.job-kpi.secured { background: linear-gradient(145deg, #f0faf5, #fff); }
+.job-kpi.secured .kpi-value { color: #2f785b; font-size: 25px; letter-spacing: -.04em; }
 
 .auth-shell, .loading-shell { min-height: 100vh; display: grid; place-items: center; padding: 22px; background: radial-gradient(circle at 50% -10%, #f1efff, transparent 35%), #f7f7f9; }
 .loading-shell { color: #777981; font-size: 12px; }

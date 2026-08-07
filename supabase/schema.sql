@@ -4,9 +4,12 @@ create table if not exists public.profiles (
   height_cm numeric not null default 0,
   start_weight_kg numeric not null default 0,
   waist_in numeric not null default 0,
+  job_secured_on date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists job_secured_on date;
 
 create table if not exists public.daily_logs (
   user_id uuid not null references auth.users(id) on delete cascade,
