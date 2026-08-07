@@ -173,6 +173,9 @@ button { cursor: pointer; }
 .milestone.reached > span { border-color: var(--violet); background: var(--violet); color: #fff; }
 .milestone.reached:not(:last-child)::before { background: #c7c0f6; }
 footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px 2px 0; color: #a2a3a8; font-size: 8px; }
+.footer-data { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.footer-data button, .footer-data label { padding: 0; border: 0; background: transparent; color: #9f573e; font-size: 8px; cursor: pointer; }
+.footer-data label input { display: none; }
 
 .heatmap-panel { grid-column: 1 / -1; }
 .heatmap-wrap { padding: 20px 19px 18px; }
@@ -354,6 +357,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
   .heatmap { grid-template-columns: repeat(15, minmax(8px, 1fr)); gap: 5px; }
   footer { display: block; padding-bottom: 5px; }
   footer span { display: block; margin-top: 5px; }
+  .footer-data { justify-content: flex-start; margin-top: 8px; }
 }
 
 @media (max-width: 430px) {

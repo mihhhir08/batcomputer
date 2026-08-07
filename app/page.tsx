@@ -321,6 +321,56 @@ export default function Home() {
     setNotice("Instagram is active from today. Earlier scores stay unchanged.");
   }
 
+  function downloadBackup() {
+    const backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      profile: { startDate, jobSecuredOn, instagramStartedOn },
+      logs,
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `momentum-90-backup-${todayKey}.json`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    setNotice("A versioned backup of your challenge analytics was downloaded.");
+  }
+
+  async function restoreBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const backup = JSON.parse(await file.text()) as { version?: number; profile?: { startDate?: string; jobSecuredOn?: string | null; instagramStartedOn?: string | null }; logs?: Logs };
+      if (backup.version !== 1 || !backup.logs || Array.isArray(backup.logs)) throw new Error("Invalid backup");
+      if (!window.confirm("Merge this backup into your current challenge? Matching dates will use the backup copy.")) return;
+      const mergedLogs = { ...logs, ...backup.logs };
+      const restoredStart = backup.profile?.startDate ?? startDate;
+      const restoredJobDate = backup.profile && "jobSecuredOn" in backup.profile ? backup.profile.jobSecuredOn ?? null : jobSecuredOn;
+      const restoredInstagramDate = backup.profile && "instagramStartedOn" in backup.profile ? backup.profile.instagramStartedOn ?? null : instagramStartedOn;
+      if (supabase && session) {
+        const profileResult = await supabase.from("profiles").upsert({ user_id: session.user.id, start_date: restoredStart, job_secured_on: restoredJobDate, instagram_started_on: restoredInstagramDate });
+        const rows = Object.entries(backup.logs).map(([log_date, data]) => ({ user_id: session.user.id, log_date, data }));
+        const logsResult = rows.length ? await supabase.from("daily_logs").upsert(rows) : null;
+        if (profileResult.error || logsResult?.error) throw new Error("Cloud restore failed");
+      }
+      setLogs(mergedLogs);
+      setStartDate(restoredStart);
+      setJobSecuredOn(restoredJobDate);
+      setInstagramStartedOn(restoredInstagramDate);
+      window.localStorage.setItem("momentum-90-logs", JSON.stringify(mergedLogs));
+      window.localStorage.setItem("momentum-90-start", restoredStart);
+      if (restoredJobDate) window.localStorage.setItem("momentum-90-job-secured", restoredJobDate);
+      else window.localStorage.removeItem("momentum-90-job-secured");
+      if (restoredInstagramDate) window.localStorage.setItem("momentum-90-instagram-started", restoredInstagramDate);
+      else window.localStorage.removeItem("momentum-90-instagram-started");
+      setNotice("Backup merged successfully. Existing dates not in the backup were preserved.");
+    } catch {
+      setNotice("Restore could not be completed. Your local challenge data was left unchanged.");
+    }
+  }
+
   if (isSupabaseConfigured && !authReady) return <main className="loading-shell">Preparing your private workspace…</main>;
   if (isSupabaseConfigured && !session) return <SignIn />;
 
@@ -445,7 +495,7 @@ export default function Home() {
             </div>
           </article>
         </section>
-        <footer><span>Momentum · Your private transformation OS</span><span>Toronto time · {isSupabaseConfigured ? "Private cloud sync active" : "Data saved locally in this preview"}</span></footer>
+        <footer><span>Momentum · Your private transformation OS</span><div className="footer-data"><span>Toronto time · {isSupabaseConfigured ? "Private cloud sync active" : "Data saved locally in this preview"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
       </section>
     </main>
   );

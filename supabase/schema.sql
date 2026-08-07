@@ -1,3 +1,4 @@
+-- Production safety: keep all future schema changes additive while a challenge is active.
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   start_date date not null default '2026-08-07',
