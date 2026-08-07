@@ -293,6 +293,10 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 .career-win-line { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 10px; border-top: 1px solid #e8e4de; color: #548a75; font-size: 9px; }
 .job-kpi.secured { background: linear-gradient(145deg, #f0faf5, #fff); }
 .job-kpi.secured .kpi-value { color: #2f785b; font-size: 25px; letter-spacing: -.04em; }
+.upcoming-habit { grid-template-columns: auto 1fr auto; cursor: default; background: #fffaf7; }
+.upcoming-habit:hover { background: #fffaf7; }
+.upcoming-mark { width: 20px; height: 20px; display: grid; place-items: center; border: 1px dashed #d9a995; border-radius: 6px; color: #c47759; font-size: 10px; }
+.upcoming-habit button { height: 27px; padding: 0 8px; border: 1px solid #efc9b9; border-radius: 7px; background: #fff; color: #a85d42; font-size: 8px; font-weight: 650; white-space: nowrap; }
 
 .auth-shell, .loading-shell { min-height: 100vh; display: grid; place-items: center; padding: 22px; background: radial-gradient(circle at 50% -10%, #f1efff, transparent 35%), #f7f7f9; }
 .loading-shell { color: #777981; font-size: 12px; }

@@ -58,19 +58,26 @@ function careerIsActive(logDate: string, jobSecuredOn: string | null) {
   return !jobSecuredOn || logDate < jobSecuredOn;
 }
 
-function score(log: DayLog, logDate: string, jobSecuredOn: string | null) {
-  const binaries = HABITS.reduce((sum, habit) => sum + Number(log[habit.key]), 0);
+function instagramIsActive(logDate: string, instagramStartedOn: string | null) {
+  return Boolean(instagramStartedOn && logDate >= instagramStartedOn);
+}
+
+function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
+  const instagramActive = instagramIsActive(logDate, instagramStartedOn);
+  const activeHabits = HABITS.filter((habit) => habit.key !== "instagram" || instagramActive);
+  const binaries = activeHabits.reduce((sum, habit) => sum + Number(log[habit.key]), 0);
   const steps = Math.min(log.steps / 10000, 1);
   const jobs = Math.min(log.jobs / 10, 1);
   const careerActive = careerIsActive(logDate, jobSecuredOn);
-  return Math.round(((binaries + steps + (careerActive ? jobs : 0)) / (careerActive ? 8 : 7)) * 100);
+  return Math.round(((binaries + steps + (careerActive ? jobs : 0)) / (activeHabits.length + 1 + Number(careerActive))) * 100);
 }
 
-function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | null) {
+function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
+  const instagramActive = instagramIsActive(logDate, instagramStartedOn);
   return {
-    Overall: score(log, logDate, jobSecuredOn),
+    Overall: score(log, logDate, jobSecuredOn, instagramStartedOn),
     Body: Math.round(((Number(log.cleanFood) + Number(log.protein) + Number(log.strength) + Math.min(log.steps / 10000, 1)) / 4) * 100),
-    Content: Math.round(((Number(log.x) + Number(log.linkedin) + Number(log.instagram)) / 3) * 100),
+    Content: Math.round(((Number(log.x) + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100),
     Career: careerIsActive(logDate, jobSecuredOn) ? Math.round(Math.min(log.jobs / 10, 1) * 100) : 100,
   };
 }
@@ -89,12 +96,12 @@ function MiniLine({ values, color = "#ff5d35" }: { values: number[]; color?: str
   );
 }
 
-function TrendChart({ logs, dates, jobSecuredOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null }) {
+function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
   const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Body: true, Content: true, Career: true });
   const colors: Record<string, string> = { Overall: "#ff5d35", Body: "#2879ff", Content: "#f5a623", Career: "#16b364" };
   const series = Object.keys(colors).map((name) => ({
     name,
-    values: dates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[name as keyof ReturnType<typeof categoryScores>]),
+    values: dates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[name as keyof ReturnType<typeof categoryScores>]),
   }));
   const x = (index: number) => 44 + (index / Math.max(dates.length - 1, 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
@@ -183,6 +190,7 @@ export default function Home() {
   const [preview, setPreview] = useState(true);
   const [startDate, setStartDate] = useState(START_DATE);
   const [jobSecuredOn, setJobSecuredOn] = useState<string | null>(null);
+  const [instagramStartedOn, setInstagramStartedOn] = useState<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [session, setSession] = useState<Session | null>(null);
@@ -200,9 +208,11 @@ export default function Home() {
     const saved = window.localStorage.getItem("momentum-90-logs");
     const savedStart = window.localStorage.getItem("momentum-90-start");
     const savedJobDate = window.localStorage.getItem("momentum-90-job-secured");
+    const savedInstagramDate = window.localStorage.getItem("momentum-90-instagram-started");
     queueMicrotask(() => {
       if (savedStart) setStartDate(savedStart);
       if (savedJobDate) setJobSecuredOn(savedJobDate);
+      if (savedInstagramDate) setInstagramStartedOn(savedInstagramDate);
       if (saved) {
         setLogs(JSON.parse(saved));
         setPreview(false);
@@ -218,11 +228,12 @@ export default function Home() {
     const client = supabase;
     Promise.all([
       client.from("daily_logs").select("log_date,data").eq("user_id", session.user.id),
-      client.from("profiles").select("start_date,job_secured_on").eq("user_id", session.user.id).maybeSingle(),
+      client.from("profiles").select("start_date,job_secured_on,instagram_started_on").eq("user_id", session.user.id).maybeSingle(),
     ]).then(([daily, profile]) => {
       if (daily.data) setLogs(Object.fromEntries(daily.data.map((row) => [row.log_date, { ...EMPTY_LOG, ...row.data }])));
       if (profile.data?.start_date) setStartDate(profile.data.start_date);
       if (profile.data?.job_secured_on) setJobSecuredOn(profile.data.job_secured_on);
+      if (profile.data?.instagram_started_on) setInstagramStartedOn(profile.data.instagram_started_on);
       setPreview(!profile.data);
       setHydrated(true);
     });
@@ -247,16 +258,18 @@ export default function Home() {
   const chartDates = Array.from({ length: 14 }, (_, index) => addDays(today, index - 13));
   const weekDates = chartDates.slice(-7);
   const previousWeekDates = chartDates.slice(0, 7);
-  const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn));
-  const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn));
+  const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
+  const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
   const weeklyScore = average(weekScores);
   const previousScore = average(previousScores);
   const weeklyDelta = weeklyScore - previousScore;
   const careerActiveToday = careerIsActive(todayKey, jobSecuredOn);
-  const commitmentTotal = careerActiveToday ? 8 : 7;
-  const completedToday = HABITS.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(careerActiveToday && todayLog.jobs >= 10);
+  const instagramActiveToday = instagramIsActive(todayKey, instagramStartedOn);
+  const activeHabitsToday = HABITS.filter((habit) => habit.key !== "instagram" || instagramActiveToday);
+  const commitmentTotal = activeHabitsToday.length + 1 + Number(careerActiveToday);
+  const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(careerActiveToday && todayLog.jobs >= 10);
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
-  const totalPosts = Object.values(logs).reduce((sum, log) => sum + Number(log.x) + Number(log.linkedin) + Number(log.instagram), 0);
+  const totalPosts = Object.entries(logs).reduce((sum, [logDate, log]) => sum + Number(log.x) + Number(log.linkedin) + Number(instagramIsActive(logDate, instagramStartedOn) && log.instagram), 0);
   const latestWeight = Object.entries(logs).sort(([a], [b]) => b.localeCompare(a)).find(([, log]) => log.weight)?.[1].weight ?? 0;
   const bodyFat = 64 - 20 * (0 / (0 * 2.54));
 
@@ -299,6 +312,13 @@ export default function Home() {
     else window.localStorage.removeItem("momentum-90-job-secured");
     if (supabase && session) supabase.from("profiles").update({ job_secured_on: date }).eq("user_id", session.user.id);
     setNotice(date ? "Career goal reached. Daily applications are now retired from your score." : "The job-search goal is active again.");
+  }
+
+  function startInstagram() {
+    setInstagramStartedOn(todayKey);
+    window.localStorage.setItem("momentum-90-instagram-started", todayKey);
+    if (supabase && session) supabase.from("profiles").update({ instagram_started_on: todayKey }).eq("user_id", session.user.id);
+    setNotice("Instagram is active from today. Earlier scores stay unchanged.");
   }
 
   if (isSupabaseConfigured && !authReady) return <main className="loading-shell">Preparing your private workspace…</main>;
@@ -344,20 +364,23 @@ export default function Home() {
           <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
           <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
             const log = logs[dateKey(date)] ?? EMPTY_LOG;
-            return ((Number(log.x) + Number(log.linkedin) + Number(log.instagram)) / 3) * 100;
-          })} color="#f5a623" /><p>Across X, LinkedIn & Instagram</p></article>
+            const instagramActive = instagramIsActive(dateKey(date), instagramStartedOn);
+            return ((Number(log.x) + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100;
+          })} color="#f5a623" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
         </section>
 
         <section className="dashboard-grid">
           <article className="panel chart-panel">
             <div className="panel-header"><div><p className="eyebrow">All systems</p><h2>Momentum trend</h2></div><span className="range-pill">Last 14 days</span></div>
-            <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} />
+            <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
           <article className="panel daily-panel" id="today">
-            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog, todayKey, jobSecuredOn) * 3.6}deg` } as React.CSSProperties}>{score(todayLog, todayKey, jobSecuredOn)}%</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog, todayKey, jobSecuredOn, instagramStartedOn) * 3.6}deg` } as React.CSSProperties}>{score(todayLog, todayKey, jobSecuredOn, instagramStartedOn)}%</span></div>
             <div className="habit-list">
-              {HABITS.map((habit) => (
+              {HABITS.map((habit) => habit.key === "instagram" && !instagramActiveToday ? (
+                <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark">○</span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
+              ) : (
                 <label className="habit-row" key={habit.key}>
                   <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
                   <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group}</span>
@@ -372,8 +395,8 @@ export default function Home() {
             <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Where you’re gaining</h2></div><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span></div>
             <div className="comparison-chart">
               {(["Body", "Content", "Career"] as const).map((category) => {
-                const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[category]));
-                const prior = average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn)[category]));
+                const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
+                const prior = average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
                 return <div className="comparison-row" key={category}><span>{category}</span><div className="bar-stack"><i className="prior" style={{ width: `${prior}%` }} /><i className="current" style={{ width: `${current}%` }} /></div><strong>{current}%</strong></div>;
               })}
               <div className="bar-key"><span><i className="prior" />Previous week</span><span><i className="current" />This week</span></div>
@@ -389,7 +412,7 @@ export default function Home() {
             <div className="heatmap-wrap">
               <div className="heatmap" role="img" aria-label="90-day consistency map">
                 {challengeDays.map((date, index) => {
-                  const value = score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn);
+                  const value = score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn);
                   const future = date.getTime() > today.getTime();
                   const intensity = future ? "future" : value >= 75 ? "high" : value >= 40 ? "mid" : value > 0 ? "low" : "empty";
                   return <span key={dateKey(date)} className={`heat-cell ${intensity}`} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}%`} />;
