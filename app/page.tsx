@@ -453,14 +453,22 @@ export default function Home() {
           </article>
 
           <article className="panel weekly-panel" id="weekly">
-            <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Where you’re gaining</h2></div><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span></div>
-            <div className="comparison-chart">
+            <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Your momentum by system</h2></div><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span></div>
+            <div className="comparison-grid">
               {(["Body", "Content", "Career"] as const).map((category) => {
                 const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
                 const prior = average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
-                return <div className="comparison-row" key={category}><span>{category}</span><div className="bar-stack"><i className="prior" style={{ width: `${prior}%` }} /><i className="current" style={{ width: `${current}%` }} /></div><strong>{current}%</strong></div>;
+                const change = current - prior;
+                const color = { Body: "#2879ff", Content: "#f5a623", Career: "#16b364" }[category];
+                return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
+                  <div className="comparison-card-head"><span><i />{category}</span><em className={change > 0 ? "up" : change < 0 ? "down" : "flat"}>{change > 0 ? "↑" : change < 0 ? "↓" : "→"} {Math.abs(change)}%</em></div>
+                  <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
+                  <div className="week-bars" role="img" aria-label={`${category}: ${current}% this week, ${prior}% previous week`}>
+                    <div><span>This week</span><i><b style={{ width: `${current}%` }} /></i><strong>{current}</strong></div>
+                    <div className="previous"><span>Previous</span><i><b style={{ width: `${prior}%` }} /></i><strong>{prior}</strong></div>
+                  </div>
+                </section>;
               })}
-              <div className="bar-key"><span><i className="prior" />Previous week</span><span><i className="current" />This week</span></div>
             </div>
           </article>
 
