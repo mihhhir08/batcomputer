@@ -199,6 +199,17 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   );
 }
 
+function MetricStepper({ label, value, step, unit, complete, onChange }: { label: string; value: number; step: number; unit: string; complete: boolean; onChange: (value: number) => void }) {
+  const move = (amount: number) => onChange(Math.max(0, Math.round((value + amount) * 100) / 100));
+  return (
+    <div className={`metric-stepper${complete ? " complete" : ""}`}>
+      <button type="button" aria-label={`Decrease ${label}`} onClick={() => move(-step)} disabled={value <= 0}>−</button>
+      <label className="metric-value"><input aria-label={label} inputMode="decimal" type="number" min="0" step={step} value={value || ""} placeholder="0" onChange={(event) => onChange(Math.max(0, Number(event.target.value)))} /><span>{unit}</span></label>
+      <button type="button" aria-label={`Increase ${label}`} onClick={() => move(step)}>+</button>
+    </div>
+  );
+}
+
 function SignIn() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -576,8 +587,8 @@ export default function Home() {
                   <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group}</span>
                 </label>
               ))}
-              <div className="number-row"><span><strong>Daily steps</strong><small>Target · 10,000</small></span><div className="number-control"><input aria-label="Steps today" type="number" min="0" step="500" value={todayLog.steps || ""} placeholder="0" onChange={(e) => updateToday({ steps: Math.max(0, Number(e.target.value)) })} /><span>steps</span></div></div>
-              <div className="number-row"><span><strong>Water intake</strong><small>Target range · 3–4 L</small></span><div className="number-control"><input aria-label="Water intake today in litres" type="number" min="0" step="0.25" value={todayLog.water || ""} placeholder="0" onChange={(e) => updateToday({ water: Math.max(0, Number(e.target.value)) })} /><span>litres</span></div></div>
+              <div className="number-row"><span><strong>Daily steps</strong><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
+              <div className="number-row"><span><strong>Water intake</strong><small>Target range · 3–4 L</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
               {careerActiveToday ? <div className="number-row"><span><strong>Job applications</strong><small>Target · 10</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · {new Date(`${jobSecuredOn}T12:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
               {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
             </div>
