@@ -39,14 +39,14 @@ const EMPTY_LOG: DayLog = {
 };
 
 const HABITS: { key: BinaryKey; label: string; note: string; group: GoalName }[] = [
+  { key: "x", label: "Post on X", note: "Build daily distribution", group: "Audience" },
+  { key: "linkedin", label: "Post on LinkedIn", note: "Build authority and opportunity", group: "Audience" },
+  { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Audience" },
+  { key: "careerGrowth", label: "Career opportunity block", note: "45 focused min · skill, project, interview prep or outreach", group: "Career" },
   { key: "cleanFood", label: "Clean food only", note: "Whole foods, no junk", group: "Body" },
   { key: "protein", label: "Protein target", note: "Hit your daily target", group: "Body" },
   { key: "strength", label: "Kettlebell strength", note: "Complete the session", group: "Body" },
   { key: "scalpMassage", label: "Scalp massage", note: "Daily consistency for healthier hair", group: "Hair" },
-  { key: "careerGrowth", label: "Career opportunity block", note: "45 focused min · skill, project, interview prep or outreach", group: "Career" },
-  { key: "x", label: "Post on X", note: "Build daily distribution", group: "Audience" },
-  { key: "linkedin", label: "Post on LinkedIn", note: "Build authority and opportunity", group: "Audience" },
-  { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Audience" },
 ];
 
 const DEMO_LOGS: Logs = {
