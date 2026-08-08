@@ -4,10 +4,11 @@ import { ChangeEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-type BinaryKey = "x" | "linkedin" | "instagram" | "cleanFood" | "protein" | "strength";
+type BinaryKey = "x" | "linkedin" | "instagram" | "cleanFood" | "protein" | "strength" | "scalpMassage";
 type DayLog = Record<BinaryKey, boolean> & {
   jobs: number;
   steps: number;
+  water: number;
   recovery: boolean;
   weight?: number;
   waist?: number;
@@ -16,6 +17,7 @@ type DayLog = Record<BinaryKey, boolean> & {
 type Logs = Record<string, DayLog>;
 
 const START_DATE = "2026-08-07";
+const WELLNESS_START_DATE = "2026-08-08";
 const EMPTY_LOG: DayLog = {
   x: false,
   linkedin: false,
@@ -23,8 +25,10 @@ const EMPTY_LOG: DayLog = {
   cleanFood: false,
   protein: false,
   strength: false,
+  scalpMassage: false,
   jobs: 0,
   steps: 0,
+  water: 0,
   recovery: false,
 };
 
@@ -32,6 +36,7 @@ const HABITS: { key: BinaryKey; label: string; note: string; group: string }[] =
   { key: "cleanFood", label: "Clean food only", note: "Whole foods, no junk", group: "Body" },
   { key: "protein", label: "Protein target", note: "Hit your daily target", group: "Body" },
   { key: "strength", label: "Kettlebell strength", note: "Complete the session", group: "Body" },
+  { key: "scalpMassage", label: "Scalp massage", note: "Complete your daily massage", group: "Body" },
   { key: "x", label: "Post on X", note: "One useful idea", group: "Content" },
   { key: "linkedin", label: "Post on LinkedIn", note: "Show your work", group: "Content" },
   { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Content" },
@@ -66,17 +71,20 @@ function instagramIsActive(logDate: string, instagramStartedOn: string | null) {
 
 function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
-  const activeHabits = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActive) && (habit.key !== "strength" || !log.recovery));
-  const binaries = activeHabits.reduce((sum, habit) => sum + Number(log[habit.key]), 0);
+  const wellnessActive = logDate >= WELLNESS_START_DATE;
+  const activeHabits = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActive) && (habit.key !== "strength" || !log.recovery) && (habit.key !== "scalpMassage" || wellnessActive));
+  const binaries = activeHabits.reduce((sum, habit) => sum + Number(Boolean(log[habit.key])), 0);
   const steps = Math.min(log.steps / 10000, 1);
+  const water = wellnessActive ? Math.min((log.water ?? 0) / 3, 1) : 0;
   const jobs = Math.min(log.jobs / 10, 1);
   const careerActive = careerIsActive(logDate, jobSecuredOn);
-  return Math.round(((binaries + steps + (careerActive ? jobs : 0)) / (activeHabits.length + 1 + Number(careerActive))) * 100);
+  return Math.round(((binaries + steps + water + (careerActive ? jobs : 0)) / (activeHabits.length + 1 + Number(wellnessActive) + Number(careerActive))) * 100);
 }
 
 function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
-  const bodySignals = [log.cleanFood, log.protein, ...(log.recovery ? [] : [log.strength]), Math.min(log.steps / 10000, 1)];
+  const wellnessSignals = logDate >= WELLNESS_START_DATE ? [Boolean(log.scalpMassage), Math.min((log.water ?? 0) / 3, 1)] : [];
+  const bodySignals = [log.cleanFood, log.protein, ...(log.recovery ? [] : [log.strength]), Math.min(log.steps / 10000, 1), ...wellnessSignals];
   return {
     Overall: score(log, logDate, jobSecuredOn, instagramStartedOn),
     Body: Math.round((bodySignals.reduce<number>((sum, value) => sum + Number(value), 0) / bodySignals.length) * 100),
@@ -96,6 +104,10 @@ function curvePath(points: { x: number; y: number }[]) {
     const control = (point.x - previous.x) * 0.45;
     return `${path} C${previous.x + control},${previous.y} ${point.x - control},${point.y} ${point.x},${point.y}`;
   }, `M${points[0].x},${points[0].y}`);
+}
+
+function areaPath(points: { x: number; y: number }[], bottom: number) {
+  return `${curvePath(points)} L${points.at(-1)!.x},${bottom} L${points[0].x},${bottom} Z`;
 }
 
 function MiniLine({ values, color = "#ff5d35" }: { values: number[]; color?: string }) {
@@ -150,6 +162,9 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
       </div>
       <div className="trend-wrap">
         <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Daily momentum trend by category">
+          <defs>
+            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff6b43" stopOpacity=".3" /><stop offset=".62" stopColor="#ff8a67" stopOpacity=".08" /><stop offset="1" stopColor="#ff9c7e" stopOpacity="0" /></linearGradient>
+          </defs>
           {[0, 25, 50, 75, 100].map((value) => (
             <g key={value}>
               <line x1="44" x2="740" y1={y(value)} y2={y(value)} className="grid-line" />
@@ -167,6 +182,8 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             const last = plotted.at(-1)!;
             const lastValue = observations.at(-1)!.value;
             return <g key={`${name}-${dates.length}`}>
+              {name === "Overall" && plotted.length > 1 && <path className="trend-area" d={areaPath(plotted, y(0))} />}
+              <path className="trend-glow" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 12 : 8} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               <path className="trend-line" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 4 : 3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               <circle className="trend-point" cx={last.x} cy={last.y} r={name === "Overall" ? 5 : 4} fill={colors[name]}><title>{name} · {lastValue}%</title></circle>
             </g>;
@@ -345,9 +362,10 @@ export default function Home() {
   const weeklyDelta = weeklyScore - previousScore;
   const careerActiveToday = careerIsActive(todayKey, jobSecuredOn);
   const instagramActiveToday = instagramIsActive(todayKey, instagramStartedOn);
-  const activeHabitsToday = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActiveToday) && (habit.key !== "strength" || !todayLog.recovery));
-  const commitmentTotal = activeHabitsToday.length + 1 + Number(careerActiveToday);
-  const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(careerActiveToday && todayLog.jobs >= 10);
+  const wellnessActiveToday = todayKey >= WELLNESS_START_DATE;
+  const activeHabitsToday = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActiveToday) && (habit.key !== "strength" || !todayLog.recovery) && (habit.key !== "scalpMassage" || wellnessActiveToday));
+  const commitmentTotal = activeHabitsToday.length + 1 + Number(wellnessActiveToday) + Number(careerActiveToday);
+  const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(wellnessActiveToday && (todayLog.water ?? 0) >= 3) + Number(careerActiveToday && todayLog.jobs >= 10);
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
   const totalPosts = Object.entries(logs).reduce((sum, [logDate, log]) => sum + Number(log.x) + Number(log.linkedin) + Number(instagramIsActive(logDate, instagramStartedOn) && log.instagram), 0);
   const weightEntries = Object.entries(logs).filter((entry): entry is [string, DayLog & { weight: number }] => typeof entry[1].weight === "number").sort(([a], [b]) => a.localeCompare(b));
@@ -560,6 +578,7 @@ export default function Home() {
                 </label>
               ))}
               <div className="number-row"><span><strong>Daily steps</strong><small>Target · 10,000</small></span><div className="number-control"><input aria-label="Steps today" type="number" min="0" step="500" value={todayLog.steps || ""} placeholder="0" onChange={(e) => updateToday({ steps: Math.max(0, Number(e.target.value)) })} /><span>steps</span></div></div>
+              <div className="number-row"><span><strong>Water intake</strong><small>Target range · 3–4 L</small></span><div className="number-control"><input aria-label="Water intake today in litres" type="number" min="0" step="0.25" value={todayLog.water || ""} placeholder="0" onChange={(e) => updateToday({ water: Math.max(0, Number(e.target.value)) })} /><span>litres</span></div></div>
               {careerActiveToday ? <div className="number-row"><span><strong>Job applications</strong><small>Target · 10</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · {new Date(`${jobSecuredOn}T12:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
               {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
             </div>
