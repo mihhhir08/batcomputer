@@ -34,6 +34,10 @@ button { cursor: pointer; }
 .challenge-summary-head small { margin-left: 3px; color: #aaa59e; font-size: 8px; font-weight: 550; }
 .challenge-summary .progress-track { height: 5px; margin: 11px 0 9px; border-radius: 20px; background: #eeeae5; overflow: hidden; }
 .challenge-summary .progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e58a69, #f0ad91); }
+.xp-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 7px; margin: 0 0 9px; color: #8d877f; font-size: 7px; font-weight: 650; }
+.xp-row > i { height: 3px; border-radius: 999px; background: #ece8e2; overflow: hidden; }
+.xp-row > i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7957f6, #48a0f8); box-shadow: 0 0 8px rgba(102,119,244,.3); }
+.xp-row strong { color: #716b64; font-size: 7px; font-variant-numeric: tabular-nums; }
 .challenge-summary-foot { color: #9a958e; font-size: 8px; }
 .challenge-summary-foot button { padding: 0; border: 0; background: transparent; color: #a85d42; font-size: 8px; font-weight: 650; }
 .preview-banner, .notice { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -3px 0 18px; padding: 10px 12px 10px 15px; border: 1px solid #dcd7ff; border-radius: 10px; background: var(--violet-soft); color: #5d51b6; font-size: 11px; }
@@ -91,9 +95,23 @@ button { cursor: pointer; }
 
 .daily-panel { grid-column: 2; grid-row: span 2; }
 .score-ring { --score: 0deg; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at center, #fff 66%, transparent 67%), conic-gradient(var(--green) var(--score), #eeeef1 0); color: #55565c; font-size: 8px; font-weight: 700; }
+.accountability-card { margin: 13px 12px 0; padding: 11px; border: 1px solid #f0c4b3; border-radius: 11px; background: radial-gradient(circle at 100% 0, rgba(229,138,105,.16), transparent 45%), linear-gradient(145deg, #fff9f6, #fff); box-shadow: 0 7px 22px rgba(0,78,47,.07); animation: mission-enter .35s ease both; }
+.accountability-copy { display: flex; align-items: flex-start; gap: 9px; }
+.accountability-copy > span { flex: 0 0 22px; height: 22px; display: grid; place-items: center; border-radius: 7px; background: linear-gradient(145deg, #ef9675, #d66543); color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 5px 12px rgba(206,94,59,.2); }
+.accountability-copy strong, .accountability-copy small { display: block; }
+.accountability-copy strong { color: #8d3f29; font-size: 10px; }
+.accountability-copy small { margin-top: 4px; color: #9b6f60; font-size: 8px; line-height: 1.45; }
+.mission-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; padding-left: 31px; }
+.mission-chips span { padding: 4px 6px; border-radius: 5px; background: #fff0e9; color: #a85236; font-size: 7px; font-weight: 700; }
+.mission-chips span.done { background: #e6f5ed; color: #297a5b; }
+.accountability-card.complete { border-color: #b8dfcb; background: radial-gradient(circle at 100% 0, rgba(80,167,124,.14), transparent 45%), linear-gradient(145deg, #f8fffb, #fff); box-shadow: 0 7px 22px rgba(45,129,90,.07); }
+.accountability-card.complete .accountability-copy > span { background: linear-gradient(145deg, #69ba8f, #328762); box-shadow-color: rgba(50,135,98,.2); }
+.accountability-card.complete .accountability-copy strong { color: #286f54; }
+.accountability-card.complete .accountability-copy small { color: #658c7b; }
 .habit-list { padding: 10px 12px 13px; }
 .habit-row { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 54px; padding: 8px; border-bottom: 1px solid #f0f0f2; cursor: pointer; border-radius: 8px; transition: background .15s ease; }
 .habit-row:hover { background: #fafafa; }
+.habit-row:has(input:checked) { background: linear-gradient(90deg, rgba(80,167,124,.07), transparent 72%); }
 .habit-row input { position: absolute; opacity: 0; pointer-events: none; }
 .custom-check { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #d8d9de; border-radius: 6px; color: transparent; font-size: 11px; transition: .18s ease; }
 .habit-row input:checked + .custom-check { color: #fff; border-color: var(--green); background: var(--green); }
@@ -211,6 +229,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 @keyframes line-fade { from { opacity: 0; } }
 @keyframes bar-rise { from { transform: scaleY(0); } }
 @keyframes sync-pulse { 50% { opacity: .35; } }
+@keyframes mission-enter { from { opacity: 0; translate: 0 4px; } }
 
 .heatmap-panel { grid-column: 1 / -1; }
 .heatmap-wrap { padding: 20px 19px 18px; }
@@ -436,6 +455,18 @@ body, .app-shell, .challenge-summary, .kpi-grid, .panel, .kpi-card { transition:
 [data-theme="dark"] .group-tag { background: linear-gradient(135deg, #243a30, #1f3029); color: #8ed0af; }
 [data-theme="dark"] .group-tag.content-tag { background: linear-gradient(135deg, #402d24, #32251f); color: #e1a88f; }
 [data-theme="dark"] .score-ring { background: radial-gradient(circle at center, #1d1c1a 66%, transparent 67%), conic-gradient(#55b486 var(--score), #3a3632 0); color: #ddd8d1; }
+[data-theme="dark"] .xp-row { color: #989189; }
+[data-theme="dark"] .xp-row > i { background: #393531; }
+[data-theme="dark"] .xp-row strong { color: #b5aea6; }
+[data-theme="dark"] .accountability-card { border-color: #654132; background: radial-gradient(circle at 100% 0, rgba(219,103,68,.18), transparent 48%), linear-gradient(145deg, #2e211c, #211c19); box-shadow: 0 9px 25px rgba(0,0,0,.16); }
+[data-theme="dark"] .accountability-copy strong { color: #f0a285; }
+[data-theme="dark"] .accountability-copy small { color: #bf8975; }
+[data-theme="dark"] .mission-chips span { background: #3c2922; color: #e8a188; }
+[data-theme="dark"] .mission-chips span.done { background: #22372d; color: #88cbaa; }
+[data-theme="dark"] .accountability-card.complete { border-color: #315b47; background: radial-gradient(circle at 100% 0, rgba(80,167,124,.17), transparent 48%), linear-gradient(145deg, #1f3028, #1b211d); }
+[data-theme="dark"] .accountability-card.complete .accountability-copy strong { color: #8dd1ae; }
+[data-theme="dark"] .accountability-card.complete .accountability-copy small { color: #78a58f; }
+[data-theme="dark"] .habit-row:has(input:checked) { background: linear-gradient(90deg, rgba(80,167,124,.1), transparent 72%); }
 [data-theme="dark"] .comparison-card { background: linear-gradient(150deg, color-mix(in srgb, var(--category-color) 12%, #211f1d), #1b1a18 62%) padding-box, linear-gradient(145deg, color-mix(in srgb, var(--category-color) 38%, #25221f), #37332f) border-box; }
 [data-theme="dark"] .comparison-card-head > span, [data-theme="dark"] .comparison-score > strong, [data-theme="dark"] .week-bars > div > strong { color: #e7e2dc; }
 [data-theme="dark"] .comparison-score > span, [data-theme="dark"] .week-bars > div { color: #928b83; }
