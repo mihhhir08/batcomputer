@@ -18,39 +18,24 @@ button, input { font: inherit; }
 button, label { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 
-.app-shell { min-height: 100vh; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
-.sidebar { position: sticky; top: 0; height: 100vh; padding: 28px 20px 22px; background: #171716; color: #fff; display: flex; flex-direction: column; z-index: 10; border-right: 1px solid #2c2c2a; }
-.brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 31px; font-size: 17px; font-weight: 680; letter-spacing: -.02em; }
+.app-shell { min-height: 100vh; }
 .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: linear-gradient(145deg, #ef9b78, #d96f4c); font-size: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 5px 18px rgba(229,138,105,.18); }
-.sidebar nav { display: grid; gap: 5px; }
-.nav-item { color: #92949c; text-decoration: none; display: flex; align-items: center; gap: 12px; height: 43px; padding: 0 11px; border-radius: 9px; font-size: 13px; transition: .2s ease; }
-.nav-item span { font-family: "SFMono-Regular", Consolas, monospace; font-size: 10px; color: #575960; }
-.nav-item:hover, .nav-item.active { color: #fff; background: #282725; }
-.nav-item.active span { color: #ee9d7e; }
-.challenge-card { margin-top: auto; padding: 17px; border: 1px solid #2c2d34; border-radius: 14px; background: linear-gradient(145deg, #1b1c22, #15161b); }
 .eyebrow { margin: 0 0 7px; color: #8b8d94; font-size: 10px; line-height: 1.3; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
-.challenge-days { display: flex; align-items: baseline; gap: 4px; margin: 8px 0 10px; }
-.challenge-days strong { font-size: 31px; letter-spacing: -.06em; }
-.challenge-days span { color: #777982; font-size: 14px; }
-.progress-track { height: 4px; border-radius: 20px; background: #303139; overflow: hidden; }
-.progress-track span { display: block; height: 100%; background: linear-gradient(90deg, var(--violet), #9d90ff); border-radius: inherit; }
-.challenge-card > p { color: #74767f; margin: 10px 0 0; font-size: 10px; }
-.profile { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 18px 4px 0; }
-.avatar { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; background: #2b2c33; color: #d9d9dd; font-size: 10px; }
-.profile strong, .profile small { display: block; }
-.profile strong { font-size: 11px; }
-.profile small { color: #686a73; font-size: 9px; margin-top: 2px; }
-.profile button { border: 0; background: none; color: #666871; letter-spacing: 2px; }
-
-.content { min-width: 0; padding: 32px clamp(24px, 4vw, 58px) 24px; }
-.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 25px; }
+.content { width: min(100%, 1440px); min-width: 0; margin: 0 auto; padding: 32px clamp(24px, 4vw, 58px) 24px; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 34px; margin-bottom: 25px; }
 .topbar h1 { margin: 0; font-size: clamp(27px, 3vw, 39px); line-height: 1.05; letter-spacing: -.055em; font-weight: 650; }
 .topbar .eyebrow { color: #85868d; margin-bottom: 9px; }
-.top-actions { display: flex; gap: 8px; }
-.icon-button, .secondary-button { height: 37px; border: 1px solid var(--line); background: var(--paper); border-radius: 9px; color: #4d4e54; font-size: 11px; font-weight: 570; box-shadow: 0 1px 1px rgba(0,0,0,.02); }
-.icon-button { width: 37px; color: var(--violet); font-size: 8px; }
-.secondary-button { padding: 0 14px; }
-.mobile-brand { display: none; }
+.topbar-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 24px; font-size: 14px; letter-spacing: -.025em; }
+.topbar-brand .brand-mark { width: 28px; height: 28px; color: #fff; font-size: 12px; }
+.challenge-summary { width: min(100%, 310px); padding: 14px 15px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.challenge-summary-head, .challenge-summary-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.challenge-summary-head > span { color: #817d76; font-size: 9px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; }
+.challenge-summary-head strong { font-size: 13px; letter-spacing: -.025em; }
+.challenge-summary-head small { margin-left: 3px; color: #aaa59e; font-size: 8px; font-weight: 550; }
+.challenge-summary .progress-track { height: 5px; margin: 11px 0 9px; border-radius: 20px; background: #eeeae5; overflow: hidden; }
+.challenge-summary .progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e58a69, #f0ad91); }
+.challenge-summary-foot { color: #9a958e; font-size: 8px; }
+.challenge-summary-foot button { padding: 0; border: 0; background: transparent; color: #a85d42; font-size: 8px; font-weight: 650; }
 .preview-banner, .notice { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -3px 0 18px; padding: 10px 12px 10px 15px; border: 1px solid #dcd7ff; border-radius: 10px; background: var(--violet-soft); color: #5d51b6; font-size: 11px; }
 .preview-banner button { border: 0; padding: 7px 11px; border-radius: 7px; background: var(--violet); color: #fff; font-size: 10px; font-weight: 650; }
 .preview-banner > div { display: flex; gap: 5px; }
@@ -205,7 +190,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 /* DataFast-inspired dark analytics finish */
 .topbar h1, .panel h2, .kpi-value, .habit-copy strong, .number-row strong, .body-metrics strong, .photo-content h3, .milestone strong { color: #eceae7; }
 .topbar .eyebrow, .eyebrow { color: #8a8883; }
-.icon-button, .secondary-button, .range-pill, .legend-chip.active { border-color: #393937; background: #242423; color: #c3c1bd; }
+.range-pill, .legend-chip.active { border-color: #393937; background: #242423; color: #c3c1bd; }
 .preview-banner { border-color: #654232; background: #33261f; color: #e3a38b; }
 .preview-banner button.ghost-start { border-color: #684837; color: #e1a28b; }
 .notice { background: #203129; border-color: #304b3e; color: #83caaa; }
@@ -244,7 +229,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 /* Bright analytics finish with DataFast's warm accent language */
 .topbar h1, .panel h2, .kpi-value, .habit-copy strong, .number-row strong, .body-metrics strong, .photo-content h3, .milestone strong { color: #1e1d1b; }
 .topbar .eyebrow, .eyebrow { color: #8a857e; }
-.icon-button, .secondary-button, .range-pill, .legend-chip.active { border-color: #e2ded8; background: #fff; color: #625f5a; }
+.range-pill, .legend-chip.active { border-color: #e2ded8; background: #fff; color: #625f5a; }
 .preview-banner { border-color: #f1c9b8; background: #fff0e9; color: #9f573e; }
 .preview-banner button.ghost-start { border-color: #eebda8; color: #a85d42; }
 .notice { background: #eaf7f1; border-color: #cbe8da; color: #28785c; }
@@ -327,18 +312,10 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 }
 
 @media (max-width: 760px) {
-  .app-shell { display: block; }
-  .sidebar { position: fixed; inset: auto 10px 10px; width: auto; height: 58px; padding: 6px; flex-direction: row; border: 1px solid #343432; border-radius: 15px; box-shadow: 0 12px 30px rgba(0,0,0,.42); }
-  .brand, .challenge-card, .profile { display: none; }
-  .sidebar nav { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
-  .nav-item { height: 44px; padding: 0; display: grid; place-items: center; border-radius: 10px; font-size: 0; }
-  .nav-item span { font-size: 10px; }
-  .content { padding: 22px 14px 88px; }
-  .topbar { align-items: flex-end; margin-bottom: 20px; }
+  .content { padding: 22px 14px 24px; }
+  .topbar { align-items: stretch; margin-bottom: 20px; }
   .topbar h1 { font-size: 28px; max-width: 280px; }
-  .top-actions .icon-button { display: none; }
-  .secondary-button { padding: 0 10px; }
-  .mobile-brand { display: block; margin-bottom: 23px; color: var(--violet); font-size: 12px; font-weight: 750; letter-spacing: -.02em; }
+  .challenge-summary { width: 250px; }
   .preview-banner { align-items: flex-start; }
   .preview-banner > div { flex-direction: column; }
   .preview-banner span { line-height: 1.45; }
@@ -362,7 +339,9 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 }
 
 @media (max-width: 430px) {
-  .top-actions { display: none; }
+  .topbar { display: grid; }
+  .topbar-brand { margin-bottom: 20px; }
+  .challenge-summary { width: 100%; }
   .kpi-grid { grid-template-columns: 1fr; }
   .kpi-card, .kpi-card:nth-child(2n), .kpi-card:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--line); }
   .kpi-card:last-child { border-bottom: 0; }

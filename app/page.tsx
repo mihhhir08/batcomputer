@@ -393,27 +393,14 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">M</span><span>Momentum</span></div>
-        <nav aria-label="Primary navigation">
-          <a className="nav-item active" href="#overview"><span>01</span>Overview</a>
-          <a className="nav-item" href="#today"><span>02</span>Daily check-in</a>
-          <a className="nav-item" href="#body"><span>03</span>Body progress</a>
-          <a className="nav-item" href="#milestones"><span>04</span>Milestones</a>
-        </nav>
-        <div className="challenge-card">
-          <div className="eyebrow">90-day challenge</div>
-          <div className="challenge-days"><strong>{dayNumber}</strong><span>/ 90</span></div>
-          <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
-          <p>Finish line · {end.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</p>
-        </div>
-        <div className="profile"><span className="avatar">MC</span><span><strong>Mihir</strong><small>Private workspace</small></span><button aria-label={session ? "Sign out" : "Profile menu"} onClick={() => session && supabase?.auth.signOut()}>{session ? "↗" : "•••"}</button></div>
-      </aside>
-
       <section className="content" id="overview">
         <header className="topbar">
-          <div><div className="mobile-brand">Momentum</div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })} · Day {dayNumber}</p><h1>Your transformation, in motion.</h1></div>
-          <div className="top-actions"><button className="secondary-button" onClick={() => document.getElementById("weekly")?.scrollIntoView({ behavior: "smooth" })}>Weekly review</button></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Your transformation, in motion.</h1></div>
+          <div className="challenge-summary">
+            <div className="challenge-summary-head"><span>90-day challenge</span><strong>Day {dayNumber}<small>/ 90</small></strong></div>
+            <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
+            <div className="challenge-summary-foot"><span>Finish · {end.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>{session && <button onClick={() => supabase?.auth.signOut()}>Sign out</button>}</div>
+          </div>
         </header>
 
         {preview && <div className="preview-banner"><span><strong>Preview data</strong> — See how your analytics will feel once you build momentum.</span><div><button onClick={() => leavePreview("2026-08-07")}>Start Aug 7</button><button className="ghost-start" onClick={() => leavePreview("2026-08-08")}>Start Aug 8</button></div></div>}
