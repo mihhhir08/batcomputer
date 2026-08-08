@@ -105,6 +105,8 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   }));
   const x = (index: number) => 44 + (index / Math.max(dates.length - 1, 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
+  const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
+  const labelEvery = Math.max(1, Math.ceil(dates.length / 7));
 
   return (
     <>
@@ -124,7 +126,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             </g>
           ))}
           {visible.Overall && series[0].values.map((value, index) => (
-            <rect key={`bar-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - 11} y={y(value)} width="22" height={y(0) - y(value)} rx="5">
+            <rect key={`bar-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
@@ -141,7 +143,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          {dates.map((date, index) => index % 2 === 0 && (
+          {dates.map((date, index) => (index % labelEvery === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
             </text>
@@ -193,6 +195,7 @@ export default function Home() {
   const [instagramStartedOn, setInstagramStartedOn] = useState<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
 
@@ -255,9 +258,12 @@ export default function Home() {
   const start = new Date(`${startDate}T12:00:00Z`);
   const end = addDays(start, 89);
   const dayNumber = Math.min(90, Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1));
-  const chartDates = Array.from({ length: 14 }, (_, index) => addDays(today, index - 13));
-  const weekDates = chartDates.slice(-7);
-  const previousWeekDates = chartDates.slice(0, 7);
+  const comparisonDates = Array.from({ length: 14 }, (_, index) => addDays(today, index - 13));
+  const visibleChartDays = preview ? chartRange : Math.min(chartRange, dayNumber);
+  const chartEnd = today > end ? end : today;
+  const chartDates = Array.from({ length: visibleChartDays }, (_, index) => addDays(chartEnd, index - visibleChartDays + 1));
+  const weekDates = comparisonDates.slice(-7);
+  const previousWeekDates = comparisonDates.slice(0, 7);
   const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
   const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
   const weeklyScore = average(weekScores);
@@ -268,6 +274,11 @@ export default function Home() {
   const activeHabitsToday = HABITS.filter((habit) => habit.key !== "instagram" || instagramActiveToday);
   const commitmentTotal = activeHabitsToday.length + 1 + Number(careerActiveToday);
   const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(careerActiveToday && todayLog.jobs >= 10);
+  const remainingActions = [
+    ...activeHabitsToday.filter((habit) => !todayLog[habit.key]).map((habit) => habit.label),
+    ...(todayLog.steps < 10000 ? [`${(10000 - todayLog.steps).toLocaleString("en-CA")} steps remaining`] : []),
+    ...(careerActiveToday && todayLog.jobs < 10 ? [`${10 - todayLog.jobs} job applications remaining`] : []),
+  ];
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
   const totalPosts = Object.entries(logs).reduce((sum, [logDate, log]) => sum + Number(log.x) + Number(log.linkedin) + Number(instagramIsActive(logDate, instagramStartedOn) && log.instagram), 0);
   const latestWeight = Object.entries(logs).sort(([a], [b]) => b.localeCompare(a)).find(([, log]) => log.weight)?.[1].weight ?? 0;
@@ -421,7 +432,7 @@ export default function Home() {
 
         <section className="dashboard-grid">
           <article className="panel chart-panel">
-            <div className="panel-header"><div><p className="eyebrow">All systems</p><h2>Momentum trend</h2></div><span className="range-pill">Last 14 days</span></div>
+            <div className="panel-header"><div><p className="eyebrow">All systems</p><h2>Momentum trend</h2></div><div className="chart-range" role="group" aria-label="Momentum chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
             <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
@@ -453,8 +464,9 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="panel recovery-panel">
-            <div className="recovery-icon">↗</div><p className="eyebrow">Momentum mode</p><h2>One choice gets you moving again.</h2><p>A missed action never resets your progress. Complete the next smallest commitment and keep the trend alive.</p><button onClick={() => document.getElementById("today")?.scrollIntoView({ behavior: "smooth" })}>Choose the next action</button>
+          <article className="panel focus-panel">
+            <div className="panel-header"><div><p className="eyebrow">Today’s focus</p><h2>{remainingActions.length ? `${remainingActions.length} actions left` : "Daily mission complete"}</h2></div><span className="focus-count">{completedToday}/{commitmentTotal}</span></div>
+            {remainingActions.length ? <div className="focus-list">{remainingActions.slice(0, 4).map((action, index) => <button key={action} onClick={() => document.getElementById("today")?.scrollIntoView({ behavior: "smooth" })}><span>{String(index + 1).padStart(2, "0")}</span>{action}<strong>→</strong></button>)}{remainingActions.length > 4 && <p>+{remainingActions.length - 4} more in today’s check-in</p>}</div> : <div className="focus-complete"><span>✓</span><p>Everything planned for today is complete. Let the progress compound.</p></div>}
           </article>
 
           <article className="panel heatmap-panel">

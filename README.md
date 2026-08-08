@@ -34,7 +34,7 @@ Most habit trackers make every checkbox feel equally important. Momentum 90 conn
 |  | Capability | What it does |
 | :---: | :--- | :--- |
 | ◉ | **Daily command center** | One calm check-in for habits, steps, applications, and weight. |
-| ↗ | **Momentum analytics** | A vivid 14-day line-and-bar chart makes direction easy to read. |
+| ↗ | **Momentum analytics** | A vivid line-and-bar chart switches between 14-day, 30-day, and full-challenge views. |
 | ≋ | **Weekly comparison** | Compares Body, Content, and Career scores with the previous week. |
 | ▦ | **90-day consistency map** | Turns the full challenge into a visual record, one square per day. |
 | ◇ | **Milestones** | Marks Days 15, 30, 45, 60, 75, and 90 without breaking focus. |
