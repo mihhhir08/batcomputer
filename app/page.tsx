@@ -310,6 +310,7 @@ export default function Home() {
   const start = new Date(`${startDate}T12:00:00Z`);
   const end = addDays(start, 89);
   const dayNumber = Math.min(90, Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1));
+  const daysRemaining = Math.min(90, Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86400000) + 1));
   const comparisonDates = Array.from({ length: 14 }, (_, index) => addDays(today, index - 13));
   const visibleChartDays = preview ? chartRange : Math.min(chartRange, dayNumber);
   const chartEnd = today > end ? end : today;
@@ -489,7 +490,7 @@ export default function Home() {
         <header className="topbar">
           <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Your transformation, in motion.</h1></div>
           <div className="challenge-summary">
-            <div className="challenge-summary-head"><span>90-day challenge</span><strong>Day {dayNumber}<small>/ 90</small></strong></div>
+            <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
             <div className="challenge-summary-foot"><span>Finish · {end.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>{session && <button onClick={() => supabase?.auth.signOut()}>Sign out</button>}</div>
           </div>
@@ -560,7 +561,7 @@ export default function Home() {
           </article>}
 
           <article className="panel heatmap-panel">
-            <div className="panel-header"><div><p className="eyebrow">Consistency map</p><h2>Your 90 days, one square at a time</h2></div><span className="range-pill">{Math.max(0, dayNumber - 1)} days logged</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Consistency map</p><h2>Your 90 days, one square at a time</h2></div><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
             <div className="heatmap-wrap">
               <div className="heatmap" role="img" aria-label="90-day consistency map">
                 {challengeDays.map((date, index) => {
