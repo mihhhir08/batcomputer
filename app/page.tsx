@@ -225,10 +225,18 @@ export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("momentum-90-theme");
+    const initialTheme = savedTheme === "dark" ? "dark" : "light";
+    document.documentElement.dataset.theme = initialTheme;
+    queueMicrotask(() => setTheme(initialTheme));
+  }, []);
 
   useEffect(() => {
     if (supabase) {
@@ -370,6 +378,15 @@ export default function Home() {
     }
   }
 
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === "light" ? "dark" : "light";
+      document.documentElement.dataset.theme = next;
+      window.localStorage.setItem("momentum-90-theme", next);
+      return next;
+    });
+  }
+
   async function handlePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -501,7 +518,7 @@ export default function Home() {
     <main className="app-shell">
       <section className="content" id="overview">
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Your transformation, in motion.</h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><span aria-hidden="true">{theme === "light" ? "☼" : "☾"}</span>{theme === "light" ? "Light" : "Dark"}</button></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Your transformation, in motion.</h1></div>
           <div className="challenge-summary">
             <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
