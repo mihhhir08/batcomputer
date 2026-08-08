@@ -583,13 +583,14 @@ body { background: var(--canvas); }
 .content { width: min(100%, 1360px); padding-inline: clamp(22px, 4vw, 54px); }
 .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .chart-panel, .daily-panel, .weekly-panel, .assistant-panel, .heatmap-panel, .body-panel, .end-summary { grid-column: 1 / -1; grid-row: auto; }
-.daily-panel { display: grid; grid-template-columns: minmax(290px, .72fr) minmax(560px, 1.28fr); align-items: start; }
+.daily-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .daily-panel > .panel-header { grid-column: 1 / -1; }
-.daily-panel > .accountability-card { grid-column: 1; grid-row: 2; margin: 18px 10px 0 18px; }
-.daily-panel > .goal-balance { grid-column: 1; grid-row: 3; margin: 12px 10px 18px 18px; }
-.daily-panel > .habit-list { grid-column: 2; grid-row: 2 / span 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 18px; padding: 0 18px 18px; border-left: 1px solid var(--line); }
+.daily-panel > .accountability-card { grid-column: 1; grid-row: 2; align-self: stretch; margin: 18px 8px 0 18px; }
+.daily-panel > .goal-balance { grid-column: 2; grid-row: 2; align-self: stretch; margin: 18px 18px 0 8px; }
+.daily-panel > .habit-list { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin-top: 10px; padding: 0 18px 20px; }
 .kpi-grid { margin-bottom: 16px; }
 .kpi-card { min-height: 168px; padding: 20px; }
+.mini-line { height: 46px; margin-top: 6px; }
 .panel-header { padding: 22px 22px 0; }
 .panel h2 { font-size: 19px; line-height: 1.2; }
 .eyebrow { font-size: 11px; }
@@ -604,6 +605,10 @@ body { background: var(--canvas); }
 .chart-range button { height: 28px; padding-inline: 10px; }
 .legend-chip { height: 29px; padding-inline: 10px; }
 .axis-label, .baseline-note { font-size: 10px; }
+.chart-panel { min-height: 0; }
+.chart-legend { padding: 18px 22px 0; }
+.trend-wrap { margin: 16px 22px 20px; padding: 8px 0 12px; }
+.trend-chart { min-width: 720px; height: clamp(330px, 32vw, 430px); }
 .score-ring { width: 50px; height: 50px; font-size: 10px; }
 .accountability-card { padding: 14px; }
 .accountability-copy strong { font-size: 13px; }
@@ -614,19 +619,29 @@ body { background: var(--canvas); }
 .goal-balance-head span { font-size: 10px; }
 .goal-grid { gap: 8px; }
 .goal-card { gap: 10px; padding: 10px; }
-.goal-ring { flex-basis: 44px; width: 44px; height: 44px; padding-top: 14px; }
+.goal-ring { flex-basis: 50px; width: 50px; height: 50px; padding-top: 16px; }
 .goal-ring strong { font-size: 11px; }
 .goal-ring small { font-size: 7px; }
 .goal-copy strong { font-size: 11px; }
 .goal-copy small { font-size: 9px; }
-.habit-row, .number-row { min-height: 68px; padding: 10px; }
+.habit-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+.habit-row, .number-row { min-width: 0; min-height: 72px; padding: 11px 12px; }
 .habit-copy strong, .number-row strong { font-size: 13px; }
 .habit-copy small, .number-row small { margin-top: 4px; font-size: 11px; line-height: 1.35; }
-.group-tag { font-size: 9px; white-space: nowrap; }
+.group-tag { max-width: 100%; font-size: 9px; white-space: nowrap; }
+.task-heading { flex-wrap: wrap; }
 .task-heading em { font-size: 9px; }
-.metric-value input { font-size: 14px; }
-.metric-value span { font-size: 9px; }
+.metric-stepper { width: 190px; height: 46px; grid-template-columns: 46px 1fr 46px; }
+.metric-stepper > button { font-size: 20px; }
+.metric-value { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; }
+.metric-value input { min-width: 0; padding-left: 8px; text-align: right; font-size: 14px; }
+.metric-value span { position: static; margin-right: 8px; translate: none; font-size: 9px; }
+.stepper { grid-template-columns: repeat(3, 32px); height: 34px; }
 .stepper strong { font-size: 12px; }
+.job-won-button, .job-secured-row button, .upcoming-habit button, .recovery-habit button { font-size: 10px; }
+.plan-recovery { min-height: 58px; }
+.plan-recovery strong { font-size: 12px; }
+.plan-recovery small, .plan-recovery em { font-size: 10px; }
 .comparison-grid { gap: 12px; padding: 22px; }
 .comparison-card { padding: 18px; }
 .comparison-card-head > span { font-size: 13px; }
@@ -634,6 +649,7 @@ body { background: var(--canvas); }
 .comparison-score { margin-block: 20px; }
 .comparison-score > strong { font-size: 40px; }
 .comparison-score small, .week-bars > div, .week-bars > div > strong { font-size: 10px; }
+.week-bars > div > i { height: 9px; }
 .assistant-panel { padding: 22px; }
 .assistant-heading h2 { font-size: 19px; }
 .assistant-insights > div { padding: 15px; }
@@ -641,8 +657,15 @@ body { background: var(--canvas); }
 .assistant-insights strong { font-size: 12px; }
 .body-metrics span, .body-metrics em, .body-note p, .photo-content p { font-size: 11px; }
 .body-metrics strong small { font-size: 10px; }
+.weight-trend svg { height: auto; aspect-ratio: 400 / 108; }
+.photo-content { grid-template-columns: 190px minmax(0, 1fr); gap: 28px; padding: 22px; }
+.photos-panel, .milestone-panel { align-self: stretch; }
+.photo-content { min-height: 340px; }
+.photo-content h3 { font-size: 18px; }
 .photo-preview span, .upload-button { font-size: 10px; }
 .milestone { min-height: 44px; }
+.milestone > span { width: 32px; height: 32px; }
+.milestone:not(:last-child)::before { left: 15px; top: 31px; }
 .milestone > span, .milestone strong { font-size: 11px; }
 .milestone small { font-size: 10px; }
 .heatmap-legend, footer, .footer-data button, .footer-data label { font-size: 10px; }
@@ -658,8 +681,10 @@ body { background: var(--canvas); }
   .daily-panel { grid-template-columns: 1fr; }
   .daily-panel > .panel-header, .daily-panel > .accountability-card, .daily-panel > .goal-balance, .daily-panel > .habit-list { grid-column: 1; grid-row: auto; }
   .daily-panel > .accountability-card, .daily-panel > .goal-balance { margin-inline: 18px; }
-  .daily-panel > .habit-list { margin-top: 0; padding-top: 0; border-left: 0; }
+  .daily-panel > .goal-balance { margin-top: 10px; }
+  .daily-panel > .habit-list { margin-top: 10px; padding-top: 0; }
   .photo-content { grid-template-columns: 120px 1fr; }
+  .photo-content { min-height: 0; }
 }
 
 @media (max-width: 760px) {
@@ -676,6 +701,7 @@ body { background: var(--canvas); }
   .panel-header { padding: 16px 15px 0; }
   .chart-panel .panel-header { align-items: center; }
   .daily-panel > .habit-list { grid-template-columns: 1fr; padding-inline: 10px; }
+  .metric-stepper { width: 170px; grid-template-columns: 42px 1fr 42px; }
   .body-metrics { grid-template-columns: 1fr 1fr; padding: 15px; }
   .body-metrics > div { padding: 13px 12px; border-bottom: 1px solid var(--line); }
   .body-metrics > div:nth-child(2) { border-right: 0; }
@@ -704,6 +730,9 @@ body { background: var(--canvas); }
   .photo-preview { width: 120px; }
   .comparison-grid { grid-template-columns: 1fr; }
   .metric-stepper { width: 150px; }
+  .metric-stepper { grid-template-columns: 38px 1fr 38px; }
+  .habit-row:has(input) { grid-template-columns: auto minmax(0, 1fr); }
+  .habit-row:has(input) .group-tag { grid-column: 2; justify-self: start; }
   .habit-copy strong, .number-row strong { font-size: 12px; }
   .habit-copy small, .number-row small { font-size: 10px; }
   .end-summary-grid { grid-template-columns: 1fr 1fr; }
