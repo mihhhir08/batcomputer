@@ -110,7 +110,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
   return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
     <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#e58a69" stopOpacity=".2" /><stop offset="1" stopColor="#e58a69" stopOpacity="0" /></linearGradient></defs>
     <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
-    <polyline key={entries.length} className="weight-line" points={points} fill="none" pathLength="1" />
+    <polyline key={entries.length} className="weight-line" points={points} fill="none" />
     {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
   </svg></div>;
 }
@@ -160,7 +160,6 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
-              pathLength="1"
             />
           ))}
           {dates.map((date, index) => (index % labelEvery === 0 || index === dates.length - 1) && (

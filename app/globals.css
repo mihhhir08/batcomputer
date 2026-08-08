@@ -82,7 +82,7 @@ button { cursor: pointer; }
 .grid-line { stroke: #ece9e4; stroke-width: 1; stroke-dasharray: 3 4; }
 .trend-bar { fill: #ff5d35; fill-opacity: .27; stroke: #ff5d35; stroke-opacity: .52; stroke-width: 1; transform-box: fill-box; transform-origin: bottom; animation: bar-rise .5s ease both; transition: fill-opacity .18s ease; }
 .trend-bar:hover { fill-opacity: .43; }
-.trend-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: line-draw .75s ease forwards; filter: drop-shadow(0 2px 2px rgba(25, 33, 52, .12)); }
+.trend-line { animation: line-fade .4s ease both; filter: drop-shadow(0 2px 2px rgba(25, 33, 52, .12)); }
 .axis-label { fill: #a3a4aa; font-size: 9px; font-family: Inter, ui-sans-serif, sans-serif; }
 
 .daily-panel { grid-column: 2; grid-row: span 2; }
@@ -157,7 +157,7 @@ button { cursor: pointer; }
 .body-note p { margin: 1px 0 0; font-size: 9px; line-height: 1.5; }
 .weight-trend { margin: 0 19px 14px; padding: 8px 10px 0; border: 1px solid #eeeae5; border-radius: 10px; background: linear-gradient(180deg, #fffaf7, #fff); }
 .weight-trend svg { display: block; width: 100%; height: 112px; overflow: visible; }
-.weight-line { stroke: #e58a69; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: line-draw .7s ease forwards; }
+.weight-line { stroke: #e58a69; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; animation: line-fade .4s ease both; }
 .weight-trend circle { fill: #fff; stroke: #e58a69; stroke-width: 2; }
 .weight-empty { margin: 0 19px 14px; padding: 25px; border: 1px dashed #ddd7d0; border-radius: 10px; color: #979189; text-align: center; font-size: 9px; }
 
@@ -195,7 +195,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 .end-summary-grid span { color: #98928a; font-size: 8px; }
 .end-summary-grid strong { margin-top: 8px; font-size: 16px; letter-spacing: -.04em; }
 
-@keyframes line-draw { to { stroke-dashoffset: 0; } }
+@keyframes line-fade { from { opacity: 0; } }
 @keyframes bar-rise { from { transform: scaleY(0); } }
 @keyframes sync-pulse { 50% { opacity: .35; } }
 
