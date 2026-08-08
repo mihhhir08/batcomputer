@@ -42,6 +42,11 @@ Most habit trackers make every checkbox feel equally important. Momentum 90 conn
 | ▣ | **Private progress photos** | Stores visual checkpoints in a private Supabase Storage bucket. |
 | ✓ | **Adaptive goals** | Instagram begins when activated; job applications stop counting after the job is secured. |
 | ⤓ | **Portable backups** | Downloads versioned JSON and safely merges it back without deleting dates missing from the backup. |
+| ◌ | **Planned recovery** | Excludes a deliberate strength-recovery day without rewarding or punishing it. |
+| ◒ | **Weekly weight trend** | Turns occasional weigh-ins into a readable body-recomposition trend. |
+| ✦ | **Assistant review** | Summarizes what went well, what went wrong, and what to improve after the first week. |
+| ● | **Cloud confidence** | Shows live saving, saved, local-only, and sync-error states. |
+| ◫ | **Day 90 report** | Concludes the challenge with the core body, consistency, content, and career totals. |
 
 The interface is deliberately encouraging: a missed action never resets the challenge, and recovery language points toward the next useful choice instead of punishing an imperfect day.
 

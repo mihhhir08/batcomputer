@@ -8,6 +8,7 @@ type BinaryKey = "x" | "linkedin" | "instagram" | "cleanFood" | "protein" | "str
 type DayLog = Record<BinaryKey, boolean> & {
   jobs: number;
   steps: number;
+  recovery: boolean;
   weight?: number;
   waist?: number;
 };
@@ -24,6 +25,7 @@ const EMPTY_LOG: DayLog = {
   strength: false,
   jobs: 0,
   steps: 0,
+  recovery: false,
 };
 
 const HABITS: { key: BinaryKey; label: string; note: string; group: string }[] = [
@@ -64,7 +66,7 @@ function instagramIsActive(logDate: string, instagramStartedOn: string | null) {
 
 function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
-  const activeHabits = HABITS.filter((habit) => habit.key !== "instagram" || instagramActive);
+  const activeHabits = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActive) && (habit.key !== "strength" || !log.recovery));
   const binaries = activeHabits.reduce((sum, habit) => sum + Number(log[habit.key]), 0);
   const steps = Math.min(log.steps / 10000, 1);
   const jobs = Math.min(log.jobs / 10, 1);
@@ -74,9 +76,10 @@ function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instag
 
 function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
+  const bodySignals = [log.cleanFood, log.protein, ...(log.recovery ? [] : [log.strength]), Math.min(log.steps / 10000, 1)];
   return {
     Overall: score(log, logDate, jobSecuredOn, instagramStartedOn),
-    Body: Math.round(((Number(log.cleanFood) + Number(log.protein) + Number(log.strength) + Math.min(log.steps / 10000, 1)) / 4) * 100),
+    Body: Math.round((bodySignals.reduce<number>((sum, value) => sum + Number(value), 0) / bodySignals.length) * 100),
     Content: Math.round(((Number(log.x) + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100),
     Career: careerIsActive(logDate, jobSecuredOn) ? Math.round(Math.min(log.jobs / 10, 1) * 100) : 100,
   };
@@ -94,6 +97,22 @@ function MiniLine({ values, color = "#ff5d35" }: { values: number[]; color?: str
       <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
     </svg>
   );
+}
+
+function WeightTrend({ entries }: { entries: [string, number][] }) {
+  if (!entries.length) return <div className="weight-empty">Your first weekly weigh-in will start the trend.</div>;
+  const values = entries.map(([, value]) => value);
+  const minimum = Math.min(...values) - 0.5;
+  const maximum = Math.max(...values) + 0.5;
+  const x = (index: number) => 18 + (index / Math.max(entries.length - 1, 1)) * 364;
+  const y = (value: number) => 15 + ((maximum - value) / Math.max(maximum - minimum, 1)) * 70;
+  const points = entries.map(([, value], index) => `${x(index)},${y(value)}`).join(" ");
+  return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
+    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#e58a69" stopOpacity=".2" /><stop offset="1" stopColor="#e58a69" stopOpacity="0" /></linearGradient></defs>
+    <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
+    <polyline key={entries.length} className="weight-line" points={points} fill="none" pathLength="1" />
+    {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
+  </svg></div>;
 }
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
@@ -126,13 +145,13 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             </g>
           ))}
           {visible.Overall && series[0].values.map((value, index) => (
-            <rect key={`bar-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
+            <rect key={`bar-${dates.length}-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
           {series.map(({ name, values }) => visible[name] && (
             <polyline
-              key={name}
+              key={`${name}-${dates.length}`}
               className="trend-line"
               points={values.map((value, index) => `${x(index)},${y(value)}`).join(" ")}
               fill="none"
@@ -141,6 +160,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
+              pathLength="1"
             />
           ))}
           {dates.map((date, index) => (index % labelEvery === 0 || index === dates.length - 1) && (
@@ -196,6 +216,8 @@ export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
+  const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
 
@@ -229,17 +251,48 @@ export default function Home() {
   useEffect(() => {
     if (!supabase || !session) return;
     const client = supabase;
-    Promise.all([
-      client.from("daily_logs").select("log_date,data").eq("user_id", session.user.id),
-      client.from("profiles").select("start_date,job_secured_on,instagram_started_on").eq("user_id", session.user.id).maybeSingle(),
-    ]).then(([daily, profile]) => {
-      if (daily.data) setLogs(Object.fromEntries(daily.data.map((row) => [row.log_date, { ...EMPTY_LOG, ...row.data }])));
-      if (profile.data?.start_date) setStartDate(profile.data.start_date);
+    async function loadWorkspace() {
+      const [daily, profile] = await Promise.all([
+        client.from("daily_logs").select("log_date,data").eq("user_id", session!.user.id),
+        client.from("profiles").select("start_date,job_secured_on,instagram_started_on").eq("user_id", session!.user.id).maybeSingle(),
+      ]);
+      if (daily.error || profile.error) {
+        setSyncState("error");
+        setNotice("Cloud sync could not load. Your browser copy remains untouched.");
+        setHydrated(true);
+        return;
+      }
+      const savedLogs = window.localStorage.getItem("momentum-90-logs");
+      const savedStart = window.localStorage.getItem("momentum-90-start");
+      const locallyStarted = window.localStorage.getItem("momentum-90-started") === "true" || Boolean(savedStart);
+      const localLogs = savedLogs ? JSON.parse(savedLogs) as Logs : {};
+      let syncFailed = false;
+      let nextLogs = Object.fromEntries((daily.data ?? []).map((row) => [row.log_date, { ...EMPTY_LOG, ...row.data }]));
+      if (!daily.data?.length && Object.keys(localLogs).length && locallyStarted) {
+        const rows = Object.entries(localLogs).map(([log_date, data]) => ({ user_id: session!.user.id, log_date, data: { ...EMPTY_LOG, ...data } }));
+        const migrated = await client.from("daily_logs").upsert(rows);
+        nextLogs = localLogs;
+        syncFailed = Boolean(migrated.error);
+      }
+      setLogs(nextLogs);
+      if (profile.data?.start_date) {
+        setStartDate(profile.data.start_date);
+        window.localStorage.setItem("momentum-90-start", profile.data.start_date);
+        window.localStorage.setItem("momentum-90-started", "true");
+      }
       if (profile.data?.job_secured_on) setJobSecuredOn(profile.data.job_secured_on);
       if (profile.data?.instagram_started_on) setInstagramStartedOn(profile.data.instagram_started_on);
-      setPreview(!profile.data);
+      if (!profile.data && locallyStarted) {
+        const created = await client.from("profiles").upsert({ user_id: session!.user.id, start_date: savedStart ?? START_DATE, height_cm: 0, start_weight_kg: 0, waist_in: 0 });
+        if (created.error) syncFailed = true;
+        else window.localStorage.setItem("momentum-90-started", "true");
+      }
+      setPreview(!profile.data && !locallyStarted);
+      setSyncState(syncFailed ? "error" : "saved");
+      if (!syncFailed) setLastSyncedAt(new Date());
       setHydrated(true);
-    });
+    }
+    void loadWorkspace();
     client.storage.from("progress-photos").list(session.user.id, { limit: 1, sortBy: { column: "created_at", order: "desc" } }).then(async ({ data }) => {
       if (!data?.[0]) return;
       const { data: signed } = await client.storage.from("progress-photos").createSignedUrl(`${session.user.id}/${data[0].name}`, 3600);
@@ -271,25 +324,36 @@ export default function Home() {
   const weeklyDelta = weeklyScore - previousScore;
   const careerActiveToday = careerIsActive(todayKey, jobSecuredOn);
   const instagramActiveToday = instagramIsActive(todayKey, instagramStartedOn);
-  const activeHabitsToday = HABITS.filter((habit) => habit.key !== "instagram" || instagramActiveToday);
+  const activeHabitsToday = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActiveToday) && (habit.key !== "strength" || !todayLog.recovery));
   const commitmentTotal = activeHabitsToday.length + 1 + Number(careerActiveToday);
   const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(careerActiveToday && todayLog.jobs >= 10);
-  const remainingActions = [
-    ...activeHabitsToday.filter((habit) => !todayLog[habit.key]).map((habit) => habit.label),
-    ...(todayLog.steps < 10000 ? [`${(10000 - todayLog.steps).toLocaleString("en-CA")} steps remaining`] : []),
-    ...(careerActiveToday && todayLog.jobs < 10 ? [`${10 - todayLog.jobs} job applications remaining`] : []),
-  ];
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
   const totalPosts = Object.entries(logs).reduce((sum, [logDate, log]) => sum + Number(log.x) + Number(log.linkedin) + Number(instagramIsActive(logDate, instagramStartedOn) && log.instagram), 0);
-  const latestWeight = Object.entries(logs).sort(([a], [b]) => b.localeCompare(a)).find(([, log]) => log.weight)?.[1].weight ?? 0;
+  const weightEntries = Object.entries(logs).filter((entry): entry is [string, DayLog & { weight: number }] => typeof entry[1].weight === "number").sort(([a], [b]) => a.localeCompare(b));
+  const latestWeight = weightEntries.at(-1)?.[1].weight ?? 0;
+  const weightChange = latestWeight - 0;
+  const weeklyWeightEntries = weightEntries.slice(-12).map(([date, log]) => [date, log.weight] as [string, number]);
   const bodyFat = 64 - 20 * (0 / (0 * 2.54));
+  const weeklyCategories = (["Body", "Content", "Career"] as const).map((category) => ({ category, value: average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category])) }));
+  const strongestCategory = [...weeklyCategories].sort((a, b) => b.value - a.value)[0];
+  const weakestCategory = [...weeklyCategories].sort((a, b) => a.value - b.value)[0];
+  const reviewAvailable = dayNumber >= 7;
 
   function updateToday(patch: Partial<DayLog>) {
     const next = { ...(preview ? EMPTY_LOG : logs[todayKey] ?? EMPTY_LOG), ...patch };
     if (preview) setPreview(false);
     setLogs((current) => ({ ...(preview ? {} : current), [todayKey]: next }));
     if (supabase && session) {
-      supabase.from("daily_logs").upsert({ user_id: session.user.id, log_date: todayKey, data: next }).then(({ error }) => error && setNotice("Cloud sync paused. Your latest change is still visible here."));
+      setSyncState("saving");
+      supabase.from("daily_logs").upsert({ user_id: session.user.id, log_date: todayKey, data: next }).then(({ error }) => {
+        if (error) {
+          setSyncState("error");
+          setNotice("Cloud sync paused. Your latest change is still saved in this browser.");
+        } else {
+          setSyncState("saved");
+          setLastSyncedAt(new Date());
+        }
+      });
     }
   }
 
@@ -298,37 +362,57 @@ export default function Home() {
     if (!file) return;
     setPhoto(URL.createObjectURL(file));
     if (supabase && session) {
+      setSyncState("saving");
       const path = `${session.user.id}/day-${dayNumber}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
       const { error } = await supabase.storage.from("progress-photos").upload(path, file);
+      setSyncState(error ? "error" : "saved");
+      if (!error) setLastSyncedAt(new Date());
       setNotice(error ? "The preview is ready, but the private upload did not finish." : "Photo saved privately to your transformation timeline.");
     } else {
       setNotice("Photo preview added. Supabase will keep it private after cloud sync is connected.");
     }
   }
 
-  function leavePreview(chosenStart = START_DATE) {
+  async function leavePreview(chosenStart = START_DATE) {
     setPreview(false);
     setLogs({});
     setStartDate(chosenStart);
     window.localStorage.setItem("momentum-90-start", chosenStart);
+    window.localStorage.setItem("momentum-90-started", "true");
     if (supabase && session) {
-      supabase.from("profiles").upsert({ user_id: session.user.id, start_date: chosenStart, height_cm: 0, start_weight_kg: 0, waist_in: 0 });
+      setSyncState("saving");
+      const { error } = await supabase.from("profiles").upsert({ user_id: session.user.id, start_date: chosenStart, height_cm: 0, start_weight_kg: 0, waist_in: 0 });
+      setSyncState(error ? "error" : "saved");
+      if (!error) setLastSyncedAt(new Date());
+      if (error) setNotice("The challenge started here, but the cloud profile still needs to sync.");
     }
-    setNotice(`Your 90-day workspace is ready. The challenge begins ${new Date(`${chosenStart}T12:00:00Z`).toLocaleDateString("en-CA", { month: "long", day: "numeric", timeZone: "UTC" })}.`);
+    if (!supabase || !session) setNotice(`Your 90-day workspace is ready. The challenge begins ${new Date(`${chosenStart}T12:00:00Z`).toLocaleDateString("en-CA", { month: "long", day: "numeric", timeZone: "UTC" })}.`);
   }
 
   function updateJobOutcome(date: string | null) {
     setJobSecuredOn(date);
     if (date) window.localStorage.setItem("momentum-90-job-secured", date);
     else window.localStorage.removeItem("momentum-90-job-secured");
-    if (supabase && session) supabase.from("profiles").update({ job_secured_on: date }).eq("user_id", session.user.id);
+    if (supabase && session) {
+      setSyncState("saving");
+      supabase.from("profiles").update({ job_secured_on: date }).eq("user_id", session.user.id).then(({ error }) => {
+        setSyncState(error ? "error" : "saved");
+        if (!error) setLastSyncedAt(new Date());
+      });
+    }
     setNotice(date ? "Career goal reached. Daily applications are now retired from your score." : "The job-search goal is active again.");
   }
 
   function startInstagram() {
     setInstagramStartedOn(todayKey);
     window.localStorage.setItem("momentum-90-instagram-started", todayKey);
-    if (supabase && session) supabase.from("profiles").update({ instagram_started_on: todayKey }).eq("user_id", session.user.id);
+    if (supabase && session) {
+      setSyncState("saving");
+      supabase.from("profiles").update({ instagram_started_on: todayKey }).eq("user_id", session.user.id).then(({ error }) => {
+        setSyncState(error ? "error" : "saved");
+        if (!error) setLastSyncedAt(new Date());
+      });
+    }
     setNotice("Instagram is active from today. Earlier scores stay unchanged.");
   }
 
@@ -361,10 +445,13 @@ export default function Home() {
       const restoredJobDate = backup.profile && "jobSecuredOn" in backup.profile ? backup.profile.jobSecuredOn ?? null : jobSecuredOn;
       const restoredInstagramDate = backup.profile && "instagramStartedOn" in backup.profile ? backup.profile.instagramStartedOn ?? null : instagramStartedOn;
       if (supabase && session) {
+        setSyncState("saving");
         const profileResult = await supabase.from("profiles").upsert({ user_id: session.user.id, start_date: restoredStart, job_secured_on: restoredJobDate, instagram_started_on: restoredInstagramDate });
         const rows = Object.entries(backup.logs).map(([log_date, data]) => ({ user_id: session.user.id, log_date, data }));
         const logsResult = rows.length ? await supabase.from("daily_logs").upsert(rows) : null;
         if (profileResult.error || logsResult?.error) throw new Error("Cloud restore failed");
+        setSyncState("saved");
+        setLastSyncedAt(new Date());
       }
       setLogs(mergedLogs);
       setStartDate(restoredStart);
@@ -378,6 +465,7 @@ export default function Home() {
       else window.localStorage.removeItem("momentum-90-instagram-started");
       setNotice("Backup merged successfully. Existing dates not in the backup were preserved.");
     } catch {
+      if (supabase && session) setSyncState("error");
       setNotice("Restore could not be completed. Your local challenge data was left unchanged.");
     }
   }
@@ -390,6 +478,11 @@ export default function Home() {
     { day: 45, label: "Halfway" }, { day: 60, label: "Identity" }, { day: 75, label: "Finish mode" }, { day: 90, label: "Transform" },
   ].map((milestone) => ({ ...milestone, date: addDays(start, milestone.day - 1).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }) }));
   const challengeDays = Array.from({ length: 90 }, (_, index) => addDays(start, index));
+  const elapsedChallengeDays = challengeDays.slice(0, dayNumber);
+  const challengeScore = average(elapsedChallengeDays.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)));
+  const cleanDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.cleanFood).length;
+  const strengthDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.strength).length;
+  const averageSteps = average(elapsedChallengeDays.map((date) => logs[dateKey(date)]?.steps ?? 0));
 
   return (
     <main className="app-shell">
@@ -426,7 +519,9 @@ export default function Home() {
           <article className="panel daily-panel" id="today">
             <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog, todayKey, jobSecuredOn, instagramStartedOn) * 3.6}deg` } as React.CSSProperties}>{score(todayLog, todayKey, jobSecuredOn, instagramStartedOn)}%</span></div>
             <div className="habit-list">
-              {HABITS.map((habit) => habit.key === "instagram" && !instagramActiveToday ? (
+              {HABITS.map((habit) => habit.key === "strength" && todayLog.recovery ? (
+                <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · excluded from today’s score</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
+              ) : habit.key === "instagram" && !instagramActiveToday ? (
                 <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark">○</span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
               ) : (
                 <label className="habit-row" key={habit.key}>
@@ -436,6 +531,7 @@ export default function Home() {
               ))}
               <div className="number-row"><span><strong>Daily steps</strong><small>Target · 10,000</small></span><div className="number-control"><input aria-label="Steps today" type="number" min="0" step="500" value={todayLog.steps || ""} placeholder="0" onChange={(e) => updateToday({ steps: Math.max(0, Number(e.target.value)) })} /><span>steps</span></div></div>
               {careerActiveToday ? <div className="number-row"><span><strong>Job applications</strong><small>Target · 10</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · {new Date(`${jobSecuredOn}T12:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+              {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
             </div>
           </article>
 
@@ -459,10 +555,10 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="panel focus-panel">
-            <div className="panel-header"><div><p className="eyebrow">Today’s focus</p><h2>{remainingActions.length ? `${remainingActions.length} actions left` : "Daily mission complete"}</h2></div><span className="focus-count">{completedToday}/{commitmentTotal}</span></div>
-            {remainingActions.length ? <div className="focus-list">{remainingActions.slice(0, 4).map((action, index) => <button key={action} onClick={() => document.getElementById("today")?.scrollIntoView({ behavior: "smooth" })}><span>{String(index + 1).padStart(2, "0")}</span>{action}<strong>→</strong></button>)}{remainingActions.length > 4 && <p>+{remainingActions.length - 4} more in today’s check-in</p>}</div> : <div className="focus-complete"><span>✓</span><p>Everything planned for today is complete. Let the progress compound.</p></div>}
-          </article>
+          {reviewAvailable && <article className="panel assistant-panel">
+            <div className="assistant-heading"><span className="assistant-orb">M</span><div><p className="eyebrow">Momentum assistant · weekly review</p><h2>Here’s what your data is saying.</h2></div><span className="range-pill">Days {Math.max(1, dayNumber - 6)}–{dayNumber}</span></div>
+            <div className="assistant-insights"><div className="win"><span>01</span><p>What went well</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><span>02</span><p>What went wrong</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><span>03</span><p>What to improve</p><strong>{weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.`}</strong></div></div>
+          </article>}
 
           <article className="panel heatmap-panel">
             <div className="panel-header"><div><p className="eyebrow">Consistency map</p><h2>Your 90 days, one square at a time</h2></div><span className="range-pill">{Math.max(0, dayNumber - 1)} days logged</span></div>
@@ -480,8 +576,9 @@ export default function Home() {
           </article>
 
           <article className="panel body-panel" id="body">
-            <div className="panel-header"><div><p className="eyebrow">Body recomposition</p><h2>Signals, not verdicts</h2></div><span className="range-pill">Baseline</span></div>
-            <div className="body-metrics"><div><span>Latest weight</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Start</em></div><div><span>Waist</span><strong>0 <small>in</small></strong><em>Next check · Day 30</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>6–7 <small>kg</small></strong><em>Fat loss target</em></div></div>
+            <div className="panel-header"><div><p className="eyebrow">Body recomposition</p><h2>Weekly weight trend</h2></div><span className="range-pill">Check in once a week</span></div>
+            <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>goal <small>kg</small></strong><em>Retain strength and muscle</em></div></div>
+            <WeightTrend entries={weeklyWeightEntries} />
             <div className="body-note"><span>i</span><p>Because muscle gain can mask fat loss on the scale, progress is judged across weight, waist, strength consistency, and photos.</p></div>
           </article>
 
@@ -501,8 +598,12 @@ export default function Home() {
               ))}
             </div>
           </article>
+          {dayNumber >= 90 && <article className="panel end-summary">
+            <div className="panel-header"><div><p className="eyebrow">Day 90 · challenge complete</p><h2>Your transformation, documented.</h2></div><span className="range-pill">Final report</span></div>
+            <div className="end-summary-grid"><div><span>Overall momentum</span><strong>{challengeScore}%</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Clean-eating days</span><strong>{cleanDays}</strong></div><div><span>Strength sessions</span><strong>{strengthDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Posts</span><strong>{totalJobs} · {totalPosts}</strong></div></div>
+          </article>}
         </section>
-        <footer><span>Momentum · Your private transformation OS</span><div className="footer-data"><span>Toronto time · {isSupabaseConfigured ? "Private cloud sync active" : "Data saved locally in this preview"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
+        <footer><span>Momentum · Your private transformation OS</span><div className="footer-data"><span className={`sync-state ${syncState}`}><i />{syncState === "saving" ? "Saving to cloud…" : syncState === "saved" ? `Cloud saved${lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : ""}` : syncState === "error" ? "Cloud sync needs attention" : "Saved in this browser"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
       </section>
     </main>
   );
