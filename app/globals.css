@@ -111,10 +111,10 @@ button { cursor: pointer; }
 .metric-stepper > button:hover:not(:disabled) { background: linear-gradient(145deg, #fff5ef, #ffe3d6); color: #b65333; }
 .metric-stepper > button:active:not(:disabled) { transform: scale(.92); }
 .metric-stepper > button:disabled { cursor: default; opacity: .35; }
-.metric-value { min-width: 0; display: flex; align-items: baseline; justify-content: center; gap: 4px; padding-inline: 4px; }
-.metric-value input { min-width: 0; width: 58px; padding: 0; border: 0; outline: 0; background: transparent; color: #292622; text-align: right; font-size: 12px; font-weight: 720; font-variant-numeric: tabular-nums; }
+.metric-value { position: relative; min-width: 0; height: 100%; display: grid; place-items: center; }
+.metric-value input { width: 100%; height: 100%; padding: 0; border: 0; outline: 0; appearance: textfield; background: transparent; color: #292622; text-align: center; line-height: 1; font-size: 12px; font-weight: 720; font-variant-numeric: tabular-nums; }
 .metric-value input::-webkit-inner-spin-button, .metric-value input::-webkit-outer-spin-button { margin: 0; appearance: none; }
-.metric-value span { color: #9a948d; font-size: 7px; font-weight: 650; }
+.metric-value span { position: absolute; right: 6px; top: 50%; translate: 0 -50%; color: #9a948d; font-size: 7px; line-height: 1; font-weight: 650; pointer-events: none; }
 .metric-stepper.complete { border-color: #9ed2b8; background: linear-gradient(145deg, #f8fffb, #eaf7f0); box-shadow: 0 5px 16px rgba(54,139,99,.1), inset 0 1px 0 #fff; }
 .metric-stepper.complete .metric-value input { color: #287b5b; }
 .stepper { display: grid; grid-template-columns: 27px 27px 27px; align-items: center; height: 29px; border: 1px solid #dedee2; border-radius: 7px; overflow: hidden; }
