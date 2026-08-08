@@ -309,12 +309,15 @@ export default function Home() {
   const end = addDays(start, 89);
   const dayNumber = Math.min(90, Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1));
   const daysRemaining = Math.min(90, Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86400000) + 1));
-  const comparisonDates = Array.from({ length: 14 }, (_, index) => addDays(today, index - 13));
   const visibleChartDays = preview ? chartRange : Math.min(chartRange, dayNumber);
   const chartEnd = today > end ? end : today;
   const chartDates = Array.from({ length: visibleChartDays }, (_, index) => addDays(chartEnd, index - visibleChartDays + 1));
-  const weekDates = comparisonDates.slice(-7);
-  const previousWeekDates = comparisonDates.slice(0, 7);
+  const challengeWeekIndex = Math.floor((dayNumber - 1) / 7);
+  const weekDayCount = ((dayNumber - 1) % 7) + 1;
+  const challengeWeekStart = addDays(start, challengeWeekIndex * 7);
+  const weekDates = Array.from({ length: weekDayCount }, (_, index) => addDays(challengeWeekStart, index));
+  const hasPreviousWeek = challengeWeekIndex > 0;
+  const previousWeekDates = hasPreviousWeek ? Array.from({ length: weekDayCount }, (_, index) => addDays(challengeWeekStart, index - 7)) : [];
   const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
   const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
   const weeklyScore = average(weekScores);
@@ -498,7 +501,7 @@ export default function Home() {
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
         <section className="kpi-grid" aria-label="Key metrics">
-          <article className="kpi-card featured"><div className="kpi-top"><span>Weekly momentum</span><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}%</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>vs. {previousScore} last week</p></article>
+          <article className="kpi-card featured"><div className="kpi-top"><span>Weekly momentum</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `vs. ${previousScore} same period last week` : `${weekDayCount} ${weekDayCount === 1 ? "day" : "days"} building your baseline`}</p></article>
           <article className="kpi-card"><div className="kpi-top"><span>Today’s commitments</span><span className="status-dot" /></div><div className="kpi-value">{completedToday}<small>/{commitmentTotal}</small></div><div className="segmented-progress" style={{ gridTemplateColumns: `repeat(${commitmentTotal}, 1fr)` }}>{Array.from({ length: commitmentTotal }, (_, i) => <span key={i} className={i < completedToday ? "filled" : ""} />)}</div><p>{commitmentTotal - completedToday === 0 ? "Daily mission complete" : `${commitmentTotal - completedToday} actions to close the day`}</p></article>
           <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
           <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
@@ -534,19 +537,19 @@ export default function Home() {
           </article>
 
           <article className="panel weekly-panel" id="weekly">
-            <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Your momentum by system</h2></div><span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Your momentum by system</h2></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">Week 1 baseline</span>}</div>
             <div className="comparison-grid">
               {(["Body", "Content", "Career"] as const).map((category) => {
                 const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
-                const prior = average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
+                const prior = hasPreviousWeek ? average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category])) : 0;
                 const change = current - prior;
                 const color = { Body: "#2879ff", Content: "#f5a623", Career: "#16b364" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
-                  <div className="comparison-card-head"><span><i />{category}</span><em className={change > 0 ? "up" : change < 0 ? "down" : "flat"}>{change > 0 ? "↑" : change < 0 ? "↓" : "→"} {Math.abs(change)}%</em></div>
+                  <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Baseline"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
-                  <div className="week-bars" role="img" aria-label={`${category}: ${current}% this week, ${prior}% previous week`}>
+                  <div className="week-bars" role="img" aria-label={hasPreviousWeek ? `${category}: ${current}% this week, ${prior}% for the same period last week` : `${category}: ${current}% in the first challenge week`}>
                     <div><span>This week</span><i><b style={{ width: `${current}%` }} /></i><strong>{current}</strong></div>
-                    <div className="previous"><span>Previous</span><i><b style={{ width: `${prior}%` }} /></i><strong>{prior}</strong></div>
+                    <div className="previous"><span>Previous</span><i><b style={{ width: `${prior}%` }} /></i><strong>{hasPreviousWeek ? prior : "—"}</strong></div>
                   </div>
                 </section>;
               })}
@@ -554,8 +557,8 @@ export default function Home() {
           </article>
 
           {reviewAvailable && <article className="panel assistant-panel">
-            <div className="assistant-heading"><span className="assistant-orb">M</span><div><p className="eyebrow">Momentum assistant · weekly review</p><h2>Here’s what your data is saying.</h2></div><span className="range-pill">Days {Math.max(1, dayNumber - 6)}–{dayNumber}</span></div>
-            <div className="assistant-insights"><div className="win"><span>01</span><p>What went well</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><span>02</span><p>What went wrong</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><span>03</span><p>What to improve</p><strong>{weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.`}</strong></div></div>
+            <div className="assistant-heading"><span className="assistant-orb">M</span><div><p className="eyebrow">Momentum assistant · weekly review</p><h2>Here’s what your data is saying.</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
+            <div className="assistant-insights"><div className="win"><span>01</span><p>What went well</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><span>02</span><p>What went wrong</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><span>03</span><p>What to improve</p><strong>{hasPreviousWeek ? weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.` : `Carry your strongest ${strongestCategory.category.toLowerCase()} routine into Week 2.`}</strong></div></div>
           </article>}
 
           <article className="panel heatmap-panel">
