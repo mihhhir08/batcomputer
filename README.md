@@ -20,14 +20,15 @@ A focused 90-day dashboard for turning daily actions into visible momentum acros
 
 ## The idea
 
-Most habit trackers make every checkbox feel equally important. Momentum 90 connects the work to three outcomes and shows whether the whole system is moving:
+Most habit trackers make every checkbox feel equally important. Momentum 90 weights each action by its contribution to four outcomes and shows whether the whole system is moving:
 
-| Body | Content | Career |
-| :--- | :--- | :--- |
-| Clean whole-food eating | Post on X | 10 job applications |
-| Protein target | Post on LinkedIn | Goal retires when a job is secured |
-| 10,000 daily steps | Start Instagram when ready | Historical scores remain stable |
-| Strength training | Track publishing consistency | Simple count—no application CRM |
+| Audience · 35 | Career · 25 | Body · 30 | Hair · 10 |
+| :--- | :--- | :--- | :--- |
+| 15+ X posts | 10 job applications | Clean whole-food eating | Daily scalp massage |
+| Daily LinkedIn post | 45-minute opportunity block | Protein and strength | Streak-at-risk reminder |
+| Instagram when ready | Skills, projects, prep or outreach | Water and 10,000 steps | Weekly consistency view |
+
+The daily score is a 100-point impact model rather than a checkbox count. X and water earn useful partial credit, extra X posts earn bonus XP, and the original Day 1 score remains on its original formula so the live challenge history is not rewritten.
 
 ## Product experience
 
@@ -35,14 +36,14 @@ Most habit trackers make every checkbox feel equally important. Momentum 90 conn
 | :---: | :--- | :--- |
 | ◉ | **Daily command center** | One calm check-in for habits, steps, applications, and weight. |
 | ↗ | **Momentum analytics** | A vivid line-and-bar chart switches between 14-day, 30-day, and full-challenge views. |
-| ≋ | **Weekly comparison** | Compares Body, Content, and Career scores with the previous week. |
+| ≋ | **Weekly comparison** | Compares Audience, Career, Body, and Hair scores with the previous week. |
 | ▦ | **90-day consistency map** | Turns the full challenge into a visual record, one square per day. |
 | ◇ | **Milestones** | Marks Days 15, 30, 45, 60, 75, and 90 without breaking focus. |
 | ◎ | **Body signals** | Tracks weight and occasional waist measurements with a directional RFM body-fat estimate. |
 | ▣ | **Private progress photos** | Stores visual checkpoints in a private Supabase Storage bucket. |
 | ✓ | **Adaptive goals** | Instagram begins when activated; job applications stop counting after the job is secured. |
 | ⤓ | **Portable backups** | Downloads versioned JSON and safely merges it back without deleting dates missing from the backup. |
-| ◌ | **Planned recovery** | Excludes a deliberate strength-recovery day without rewarding or punishing it. |
+| ◌ | **Planned recovery** | Protects the strength allocation on a deliberate recovery day. |
 | ◒ | **Weekly weight trend** | Turns occasional weigh-ins into a readable body-recomposition trend. |
 | ✦ | **Assistant review** | Summarizes what went well, what went wrong, and what to improve after the first week. |
 | ● | **Cloud confidence** | Shows live saving, saved, local-only, and sync-error states. |

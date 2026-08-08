@@ -16,11 +16,13 @@ type DayLog = Record<BinaryKey, boolean> & {
 };
 
 type Logs = Record<string, DayLog>;
+type GoalName = "Audience" | "Career" | "Body" | "Hair";
 
 const START_DATE = "2026-08-07";
 const WELLNESS_START_DATE = "2026-08-08";
 const CONTENT_VOLUME_START_DATE = "2026-08-08";
 const SKILL_GROWTH_START_DATE = "2026-08-08";
+const WEIGHTED_SCORE_START_DATE = "2026-08-08";
 const EMPTY_LOG: DayLog = {
   x: false,
   linkedin: false,
@@ -36,15 +38,15 @@ const EMPTY_LOG: DayLog = {
   recovery: false,
 };
 
-const HABITS: { key: BinaryKey; label: string; note: string; group: string }[] = [
+const HABITS: { key: BinaryKey; label: string; note: string; group: GoalName }[] = [
   { key: "cleanFood", label: "Clean food only", note: "Whole foods, no junk", group: "Body" },
   { key: "protein", label: "Protein target", note: "Hit your daily target", group: "Body" },
   { key: "strength", label: "Kettlebell strength", note: "Complete the session", group: "Body" },
-  { key: "scalpMassage", label: "Scalp massage", note: "Complete your daily massage", group: "Body" },
-  { key: "careerGrowth", label: "Career skill block", note: "DSA, project, framework, or interview prep", group: "Career" },
-  { key: "x", label: "Post on X", note: "One useful idea", group: "Content" },
-  { key: "linkedin", label: "Post on LinkedIn", note: "Show your work", group: "Content" },
-  { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Content" },
+  { key: "scalpMassage", label: "Scalp massage", note: "Daily consistency for healthier hair", group: "Hair" },
+  { key: "careerGrowth", label: "Career opportunity block", note: "45 focused min · skill, project, interview prep or outreach", group: "Career" },
+  { key: "x", label: "Post on X", note: "Build daily distribution", group: "Audience" },
+  { key: "linkedin", label: "Post on LinkedIn", note: "Build authority and opportunity", group: "Audience" },
+  { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Audience" },
 ];
 
 const DEMO_LOGS: Logs = {
@@ -78,7 +80,7 @@ function xPostCount(log: DayLog) {
   return typeof log.xPosts === "number" ? log.xPosts : Number(log.x);
 }
 
-function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
+function legacyScore(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
   const wellnessActive = logDate >= WELLNESS_START_DATE;
   const contentVolumeActive = logDate >= CONTENT_VOLUME_START_DATE;
@@ -92,7 +94,47 @@ function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instag
   return Math.round(((binaries + steps + water + xExecution + (careerActive ? jobs : 0)) / (activeHabits.length + 1 + Number(wellnessActive) + Number(contentVolumeActive) + Number(careerActive))) * 100);
 }
 
+function xImpact(posts: number) {
+  if (posts >= 15) return 20;
+  if (posts >= 10) return 14;
+  if (posts >= 5) return 7;
+  return 0;
+}
+
+function waterImpact(litres: number) {
+  if (litres >= 3) return 5;
+  if (litres >= 2) return 3;
+  if (litres >= 1) return 1;
+  return 0;
+}
+
+function goalPoints(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
+  const instagramActive = instagramIsActive(logDate, instagramStartedOn);
+  const careerActive = careerIsActive(logDate, jobSecuredOn);
+  return {
+    Audience: xImpact(xPostCount(log)) + Number(log.linkedin) * (instagramActive ? 10 : 15) + Number(instagramActive && log.instagram) * 5,
+    Career: careerActive ? Math.min(log.jobs / 10, 1) * 12 + Number(log.careerGrowth) * 13 : Number(log.careerGrowth) * 25,
+    Body: Number(log.cleanFood) * 7 + Number(log.protein) * 7 + Number(log.strength || log.recovery) * 7 + Math.min(log.steps / 10000, 1) * 4 + waterImpact(log.water ?? 0),
+    Hair: Number(log.scalpMassage) * 10,
+  } satisfies Record<GoalName, number>;
+}
+
+function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
+  if (logDate < WEIGHTED_SCORE_START_DATE) return legacyScore(log, logDate, jobSecuredOn, instagramStartedOn);
+  return Math.round(Object.values(goalPoints(log, logDate, jobSecuredOn, instagramStartedOn)).reduce((sum, value) => sum + value, 0));
+}
+
 function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
+  if (logDate >= WEIGHTED_SCORE_START_DATE) {
+    const points = goalPoints(log, logDate, jobSecuredOn, instagramStartedOn);
+    return {
+      Overall: score(log, logDate, jobSecuredOn, instagramStartedOn),
+      Audience: Math.round((points.Audience / 35) * 100),
+      Career: Math.round((points.Career / 25) * 100),
+      Body: Math.round((points.Body / 30) * 100),
+      Hair: Math.round((points.Hair / 10) * 100),
+    };
+  }
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
   const xSignal = logDate >= CONTENT_VOLUME_START_DATE ? Math.min(xPostCount(log) / 15, 1) : Number(log.x);
   const wellnessSignals = logDate >= WELLNESS_START_DATE ? [Boolean(log.scalpMassage), Math.min((log.water ?? 0) / 3, 1)] : [];
@@ -101,13 +143,28 @@ function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | nul
   return {
     Overall: score(log, logDate, jobSecuredOn, instagramStartedOn),
     Body: Math.round((bodySignals.reduce<number>((sum, value) => sum + Number(value), 0) / bodySignals.length) * 100),
-    Content: Math.round(((xSignal + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100),
+    Audience: Math.round(((xSignal + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100),
     Career: careerSignals.length ? Math.round((careerSignals.reduce((sum, value) => sum + value, 0) / careerSignals.length) * 100) : 100,
+    Hair: 0,
   };
+}
+
+function habitImpact(key: BinaryKey, instagramActive: boolean, careerActive: boolean) {
+  return { x: 20, linkedin: instagramActive ? 10 : 15, instagram: 5, cleanFood: 7, protein: 7, strength: 7, scalpMassage: 10, careerGrowth: careerActive ? 13 : 25 }[key];
 }
 
 function average(values: number[]) {
   return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+}
+
+function currentStreak(logs: Logs, today: Date, completed: (log: DayLog) => boolean) {
+  let cursor = completed(logs[dateKey(today)] ?? EMPTY_LOG) ? today : addDays(today, -1);
+  let streak = 0;
+  while (streak < 90 && completed(logs[dateKey(cursor)] ?? EMPTY_LOG)) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
 }
 
 function curvePath(points: { x: number; y: number }[]) {
@@ -150,11 +207,12 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Body: true, Content: true, Career: true });
-  const colors: Record<string, string> = { Overall: "#7957f6", Body: "#48a0f8", Content: "#ff6b43", Career: "#16b364" };
+  const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Audience: true, Career: true, Body: true, Hair: true });
+  const colors: Record<string, string> = { Overall: "#7957f6", Audience: "#ff6b43", Career: "#16b364", Body: "#48a0f8", Hair: "#d28b31" };
   const series = Object.keys(colors).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
+      if (name === "Hair" && dateKey(date) < WELLNESS_START_DATE) return [];
       const log = logs[dateKey(date)];
       return log ? [{ index, value: categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn)[name as keyof ReturnType<typeof categoryScores>] }] : [];
     }),
@@ -212,6 +270,13 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
       </div>
     </>
   );
+}
+
+function GoalRing({ name, value, points, total, color }: { name: GoalName; value: number; points: number; total: number; color: string }) {
+  return <div className="goal-card" style={{ "--goal-color": color } as React.CSSProperties}>
+    <span className="goal-ring" style={{ "--goal-score": `${value * 3.6}deg` } as React.CSSProperties}><strong>{value}</strong><small>%</small></span>
+    <span className="goal-copy"><strong>{name}</strong><small>{Math.round(points)}/{total} impact points</small></span>
+  </div>;
 }
 
 function MetricStepper({ label, value, step, unit, complete, onChange }: { label: string; value: number; step: number; unit: string; complete: boolean; onChange: (value: number) => void }) {
@@ -387,12 +452,13 @@ export default function Home() {
   const weeklyDelta = weeklyScore - previousScore;
   const careerActiveToday = careerIsActive(todayKey, jobSecuredOn);
   const instagramActiveToday = instagramIsActive(todayKey, instagramStartedOn);
-  const wellnessActiveToday = todayKey >= WELLNESS_START_DATE;
   const contentVolumeActiveToday = todayKey >= CONTENT_VOLUME_START_DATE;
   const xPostsToday = xPostCount(todayLog);
-  const activeHabitsToday = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActiveToday) && (habit.key !== "strength" || !todayLog.recovery) && (habit.key !== "scalpMassage" || wellnessActiveToday) && (habit.key !== "x" || !contentVolumeActiveToday) && (habit.key !== "careerGrowth" || todayKey >= SKILL_GROWTH_START_DATE));
-  const commitmentTotal = activeHabitsToday.length + 1 + Number(wellnessActiveToday) + Number(contentVolumeActiveToday) + Number(careerActiveToday);
-  const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(wellnessActiveToday && (todayLog.water ?? 0) >= 3) + Number(contentVolumeActiveToday && xPostsToday >= 15) + Number(careerActiveToday && todayLog.jobs >= 10);
+  const todayPoints = goalPoints(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
+  const todayGoalScores = categoryScores(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
+  const todayScore = score(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
+  const balancedToday = (["Audience", "Career", "Body", "Hair"] as const).every((goal) => todayGoalScores[goal] > 0);
+  const scalpStreak = currentStreak(logs, today, (log) => log.scalpMassage);
   const xPostsRemaining = Math.max(0, 15 - xPostsToday);
   const distributionComplete = xPostsRemaining === 0 && todayLog.linkedin;
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
@@ -402,7 +468,8 @@ export default function Home() {
   const weightChange = latestWeight - 0;
   const weeklyWeightEntries = weightEntries.slice(-12).map(([date, log]) => [date, log.weight] as [string, number]);
   const bodyFat = 64 - 20 * (0 / (0 * 2.54));
-  const weeklyCategories = (["Body", "Content", "Career"] as const).map((category) => ({ category, value: average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category])) }));
+  const categoryAverage = (dates: Date[], category: GoalName) => average(dates.filter((date) => category !== "Hair" || dateKey(date) >= WELLNESS_START_DATE).map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
+  const weeklyCategories = (["Audience", "Career", "Body", "Hair"] as const).map((category) => ({ category, value: categoryAverage(weekDates, category) }));
   const strongestCategory = [...weeklyCategories].sort((a, b) => b.value - a.value)[0];
   const weakestCategory = [...weeklyCategories].sort((a, b) => a.value - b.value)[0];
   const reviewAvailable = dayNumber >= 7;
@@ -587,13 +654,11 @@ export default function Home() {
 
         <section className="kpi-grid" aria-label="Key metrics">
           <article className="kpi-card featured"><div className="kpi-top"><span>Weekly momentum</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `vs. ${previousScore} same period last week` : `${weekDayCount} ${weekDayCount === 1 ? "day" : "days"} building your baseline`}</p></article>
-          <article className="kpi-card"><div className="kpi-top"><span>Today’s commitments</span><span className="status-dot" /></div><div className="kpi-value">{completedToday}<small>/{commitmentTotal}</small></div><div className="segmented-progress" style={{ gridTemplateColumns: `repeat(${commitmentTotal}, 1fr)` }}>{Array.from({ length: commitmentTotal }, (_, i) => <span key={i} className={i < completedToday ? "filled" : ""} />)}</div><p>{commitmentTotal - completedToday === 0 ? "Daily mission complete" : `${commitmentTotal - completedToday} actions to close the day`}</p></article>
+          <article className="kpi-card"><div className="kpi-top"><span>Today’s impact</span><span className="status-dot" /></div><div className="kpi-value">{todayScore}<small>/100</small></div><div className="impact-progress"><span style={{ width: `${todayScore}%` }} /></div><p>{todayScore >= 85 && balancedToday ? "Exceptional, balanced execution" : todayScore >= 85 ? "High score · one goal is still empty" : todayScore >= 70 ? "Strong day in progress" : todayScore >= 50 ? "Partial execution · keep moving" : "Highest-impact work is still available"}</p></article>
           <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
           <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
             const log = logs[dateKey(date)] ?? EMPTY_LOG;
-            const instagramActive = instagramIsActive(dateKey(date), instagramStartedOn);
-            const xSignal = dateKey(date) >= CONTENT_VOLUME_START_DATE ? Math.min(xPostCount(log) / 15, 1) : Number(log.x);
-            return ((xSignal + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100;
+            return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
           })} color="#f5a623" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
         </section>
 
@@ -604,24 +669,33 @@ export default function Home() {
           </article>
 
           <article className="panel daily-panel" id="today">
-            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog, todayKey, jobSecuredOn, instagramStartedOn) * 3.6}deg` } as React.CSSProperties}>{score(todayLog, todayKey, jobSecuredOn, instagramStartedOn)}%</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s weighted commitments</h2></div><span className="score-ring" style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
             <div className={`accountability-card${distributionComplete ? " complete" : ""}`}><div className="accountability-copy"><span>{distributionComplete ? "✓" : "!"}</span><div><strong>{distributionComplete ? "Distribution mission complete." : "The work is unfinished."}</strong><small>{distributionComplete ? "You did the part under your control. Every extra X post earns more XP." : `Your goals need proof: ${xPostsRemaining ? `${xPostsRemaining} more X ${xPostsRemaining === 1 ? "post" : "posts"}` : "X minimum complete"}${todayLog.linkedin ? "." : " and 1 LinkedIn post."}`}</small></div></div><div className="mission-chips"><span className={xPostsRemaining === 0 ? "done" : ""}>X · {xPostsToday}/15 minimum{xPostsToday > 15 ? ` · +${xPostsToday - 15} extra` : ""}</span><span className={todayLog.linkedin ? "done" : ""}>LinkedIn · {todayLog.linkedin ? "done" : "pending"}</span></div></div>
+            <section className="goal-balance" aria-label="Today’s impact by goal">
+              <div className="goal-balance-head"><strong>Impact by goal</strong><span>Every system stays visible</span></div>
+              <div className="goal-grid">
+                <GoalRing name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ff6b43" />
+                <GoalRing name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#16b364" />
+                <GoalRing name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#48a0f8" />
+                <GoalRing name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#d28b31" />
+              </div>
+            </section>
             <div className="habit-list">
               {HABITS.map((habit) => habit.key === "x" && contentVolumeActiveToday ? (
-                <div className="number-row content-volume-row" key={habit.key}><span><strong>X distribution</strong><small>15 minimum · no upper limit</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
+                <div className="number-row content-volume-row" key={habit.key}><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>20 pts</em></span><small>15 minimum · no upper limit</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
               ) : habit.key === "strength" && todayLog.recovery ? (
-                <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · excluded from today’s score</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
+                <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
               ) : habit.key === "instagram" && !instagramActiveToday ? (
                 <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark">○</span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
               ) : (
                 <label className="habit-row" key={habit.key}>
                   <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
-                  <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group}</span>
+                  <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                 </label>
               ))}
-              <div className="number-row"><span><strong>Daily steps</strong><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
-              <div className="number-row"><span><strong>Water intake</strong><small>Target range · 3–4 L</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
-              {careerActiveToday ? <div className="number-row"><span><strong>Job applications</strong><small>Target · 10</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · {new Date(`${jobSecuredOn}T12:00:00Z`).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
+              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>5 pts</em></span><small>3 L earns full impact · 4 L is the upper target</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
+              {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
               {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
             </div>
           </article>
@@ -629,11 +703,11 @@ export default function Home() {
           <article className="panel weekly-panel" id="weekly">
             <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Your momentum by system</h2></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">Week 1 baseline</span>}</div>
             <div className="comparison-grid">
-              {(["Body", "Content", "Career"] as const).map((category) => {
-                const current = average(weekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
-                const prior = hasPreviousWeek ? average(previousWeekDates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category])) : 0;
+              {(["Audience", "Career", "Body", "Hair"] as const).map((category) => {
+                const current = categoryAverage(weekDates, category);
+                const prior = hasPreviousWeek ? categoryAverage(previousWeekDates, category) : 0;
                 const change = current - prior;
-                const color = { Body: "#2879ff", Content: "#f5a623", Career: "#16b364" }[category];
+                const color = { Audience: "#ff6b43", Career: "#16b364", Body: "#48a0f8", Hair: "#d28b31" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
                   <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Baseline"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
