@@ -4,7 +4,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-type BinaryKey = "x" | "linkedin" | "instagram" | "cleanFood" | "protein" | "strength" | "scalpMassage";
+type BinaryKey = "x" | "linkedin" | "instagram" | "cleanFood" | "protein" | "strength" | "scalpMassage" | "careerGrowth";
 type DayLog = Record<BinaryKey, boolean> & {
   jobs: number;
   steps: number;
@@ -20,6 +20,7 @@ type Logs = Record<string, DayLog>;
 const START_DATE = "2026-08-07";
 const WELLNESS_START_DATE = "2026-08-08";
 const CONTENT_VOLUME_START_DATE = "2026-08-08";
+const SKILL_GROWTH_START_DATE = "2026-08-08";
 const EMPTY_LOG: DayLog = {
   x: false,
   linkedin: false,
@@ -28,6 +29,7 @@ const EMPTY_LOG: DayLog = {
   protein: false,
   strength: false,
   scalpMassage: false,
+  careerGrowth: false,
   jobs: 0,
   steps: 0,
   water: 0,
@@ -39,6 +41,7 @@ const HABITS: { key: BinaryKey; label: string; note: string; group: string }[] =
   { key: "protein", label: "Protein target", note: "Hit your daily target", group: "Body" },
   { key: "strength", label: "Kettlebell strength", note: "Complete the session", group: "Body" },
   { key: "scalpMassage", label: "Scalp massage", note: "Complete your daily massage", group: "Body" },
+  { key: "careerGrowth", label: "Career skill block", note: "DSA, project, framework, or interview prep", group: "Career" },
   { key: "x", label: "Post on X", note: "One useful idea", group: "Content" },
   { key: "linkedin", label: "Post on LinkedIn", note: "Show your work", group: "Content" },
   { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Content" },
@@ -79,7 +82,7 @@ function score(log: DayLog, logDate: string, jobSecuredOn: string | null, instag
   const instagramActive = instagramIsActive(logDate, instagramStartedOn);
   const wellnessActive = logDate >= WELLNESS_START_DATE;
   const contentVolumeActive = logDate >= CONTENT_VOLUME_START_DATE;
-  const activeHabits = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActive) && (habit.key !== "strength" || !log.recovery) && (habit.key !== "scalpMassage" || wellnessActive) && (habit.key !== "x" || !contentVolumeActive));
+  const activeHabits = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActive) && (habit.key !== "strength" || !log.recovery) && (habit.key !== "scalpMassage" || wellnessActive) && (habit.key !== "x" || !contentVolumeActive) && (habit.key !== "careerGrowth" || logDate >= SKILL_GROWTH_START_DATE));
   const binaries = activeHabits.reduce((sum, habit) => sum + Number(Boolean(log[habit.key])), 0);
   const steps = Math.min(log.steps / 10000, 1);
   const water = wellnessActive ? Math.min((log.water ?? 0) / 3, 1) : 0;
@@ -94,11 +97,12 @@ function categoryScores(log: DayLog, logDate: string, jobSecuredOn: string | nul
   const xSignal = logDate >= CONTENT_VOLUME_START_DATE ? Math.min(xPostCount(log) / 15, 1) : Number(log.x);
   const wellnessSignals = logDate >= WELLNESS_START_DATE ? [Boolean(log.scalpMassage), Math.min((log.water ?? 0) / 3, 1)] : [];
   const bodySignals = [log.cleanFood, log.protein, ...(log.recovery ? [] : [log.strength]), Math.min(log.steps / 10000, 1), ...wellnessSignals];
+  const careerSignals = [...(careerIsActive(logDate, jobSecuredOn) ? [Math.min(log.jobs / 10, 1)] : []), ...(logDate >= SKILL_GROWTH_START_DATE ? [Number(Boolean(log.careerGrowth))] : [])];
   return {
     Overall: score(log, logDate, jobSecuredOn, instagramStartedOn),
     Body: Math.round((bodySignals.reduce<number>((sum, value) => sum + Number(value), 0) / bodySignals.length) * 100),
     Content: Math.round(((xSignal + Number(log.linkedin) + (instagramActive ? Number(log.instagram) : 0)) / (instagramActive ? 3 : 2)) * 100),
-    Career: careerIsActive(logDate, jobSecuredOn) ? Math.round(Math.min(log.jobs / 10, 1) * 100) : 100,
+    Career: careerSignals.length ? Math.round((careerSignals.reduce((sum, value) => sum + value, 0) / careerSignals.length) * 100) : 100,
   };
 }
 
@@ -386,7 +390,7 @@ export default function Home() {
   const wellnessActiveToday = todayKey >= WELLNESS_START_DATE;
   const contentVolumeActiveToday = todayKey >= CONTENT_VOLUME_START_DATE;
   const xPostsToday = xPostCount(todayLog);
-  const activeHabitsToday = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActiveToday) && (habit.key !== "strength" || !todayLog.recovery) && (habit.key !== "scalpMassage" || wellnessActiveToday) && (habit.key !== "x" || !contentVolumeActiveToday));
+  const activeHabitsToday = HABITS.filter((habit) => (habit.key !== "instagram" || instagramActiveToday) && (habit.key !== "strength" || !todayLog.recovery) && (habit.key !== "scalpMassage" || wellnessActiveToday) && (habit.key !== "x" || !contentVolumeActiveToday) && (habit.key !== "careerGrowth" || todayKey >= SKILL_GROWTH_START_DATE));
   const commitmentTotal = activeHabitsToday.length + 1 + Number(wellnessActiveToday) + Number(contentVolumeActiveToday) + Number(careerActiveToday);
   const completedToday = activeHabitsToday.filter((habit) => todayLog[habit.key]).length + Number(todayLog.steps >= 10000) + Number(wellnessActiveToday && (todayLog.water ?? 0) >= 3) + Number(contentVolumeActiveToday && xPostsToday >= 15) + Number(careerActiveToday && todayLog.jobs >= 10);
   const xPostsRemaining = Math.max(0, 15 - xPostsToday);
@@ -556,7 +560,12 @@ export default function Home() {
   const cleanDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.cleanFood).length;
   const strengthDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.strength).length;
   const averageSteps = average(elapsedChallengeDays.map((date) => logs[dateKey(date)]?.steps ?? 0));
-  const challengeXp = elapsedChallengeDays.reduce((total, date) => total + score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn) * 10, 0);
+  const challengeXp = elapsedChallengeDays.reduce((total, date) => {
+    const logDate = dateKey(date);
+    const log = logs[logDate] ?? EMPTY_LOG;
+    const extraXPosts = logDate >= CONTENT_VOLUME_START_DATE ? Math.max(0, xPostCount(log) - 15) : 0;
+    return total + score(log, logDate, jobSecuredOn, instagramStartedOn) * 10 + extraXPosts * 10;
+  }, 0);
   const level = Math.floor(challengeXp / 1000) + 1;
   const levelXp = challengeXp % 1000;
 
@@ -596,10 +605,10 @@ export default function Home() {
 
           <article className="panel daily-panel" id="today">
             <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s commitments</h2></div><span className="score-ring" style={{ "--score": `${score(todayLog, todayKey, jobSecuredOn, instagramStartedOn) * 3.6}deg` } as React.CSSProperties}>{score(todayLog, todayKey, jobSecuredOn, instagramStartedOn)}%</span></div>
-            <div className={`accountability-card${distributionComplete ? " complete" : ""}`}><div className="accountability-copy"><span>{distributionComplete ? "✓" : "!"}</span><div><strong>{distributionComplete ? "Distribution mission complete." : "The work is unfinished."}</strong><small>{distributionComplete ? "You did the part under your control. Keep building." : `Your goals need proof: ${xPostsRemaining ? `${xPostsRemaining} more X ${xPostsRemaining === 1 ? "post" : "posts"}` : "X target complete"}${todayLog.linkedin ? "." : " and 1 LinkedIn post."}`}</small></div></div><div className="mission-chips"><span className={xPostsRemaining === 0 ? "done" : ""}>X · {xPostsToday}/15{ xPostsToday >= 20 ? " · stretch" : ""}</span><span className={todayLog.linkedin ? "done" : ""}>LinkedIn · {todayLog.linkedin ? "done" : "pending"}</span></div></div>
+            <div className={`accountability-card${distributionComplete ? " complete" : ""}`}><div className="accountability-copy"><span>{distributionComplete ? "✓" : "!"}</span><div><strong>{distributionComplete ? "Distribution mission complete." : "The work is unfinished."}</strong><small>{distributionComplete ? "You did the part under your control. Every extra X post earns more XP." : `Your goals need proof: ${xPostsRemaining ? `${xPostsRemaining} more X ${xPostsRemaining === 1 ? "post" : "posts"}` : "X minimum complete"}${todayLog.linkedin ? "." : " and 1 LinkedIn post."}`}</small></div></div><div className="mission-chips"><span className={xPostsRemaining === 0 ? "done" : ""}>X · {xPostsToday}/15 minimum{xPostsToday > 15 ? ` · +${xPostsToday - 15} extra` : ""}</span><span className={todayLog.linkedin ? "done" : ""}>LinkedIn · {todayLog.linkedin ? "done" : "pending"}</span></div></div>
             <div className="habit-list">
               {HABITS.map((habit) => habit.key === "x" && contentVolumeActiveToday ? (
-                <div className="number-row content-volume-row" key={habit.key}><span><strong>X distribution</strong><small>15 minimum · 20 stretch</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
+                <div className="number-row content-volume-row" key={habit.key}><span><strong>X distribution</strong><small>15 minimum · no upper limit</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
               ) : habit.key === "strength" && todayLog.recovery ? (
                 <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · excluded from today’s score</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
               ) : habit.key === "instagram" && !instagramActiveToday ? (
