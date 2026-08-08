@@ -138,7 +138,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
   const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Body: true, Content: true, Career: true });
-  const colors: Record<string, string> = { Overall: "#ff5d35", Body: "#2879ff", Content: "#f5a623", Career: "#16b364" };
+  const colors: Record<string, string> = { Overall: "#7957f6", Body: "#48a0f8", Content: "#ff6b43", Career: "#16b364" };
   const series = Object.keys(colors).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -149,7 +149,6 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   const x = (index: number) => dates.length === 1 ? 392 : 44 + (index / (dates.length - 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
   const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
-  const labelEvery = Math.max(1, Math.ceil(dates.length / 7));
 
   return (
     <>
@@ -163,9 +162,9 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
       <div className="trend-wrap">
         <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Daily momentum trend by category">
           <defs>
-            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff6b43" stopOpacity=".3" /><stop offset=".62" stopColor="#ff8a67" stopOpacity=".08" /><stop offset="1" stopColor="#ff9c7e" stopOpacity="0" /></linearGradient>
+            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7957f6" stopOpacity=".32" /><stop offset=".5" stopColor="#6695fa" stopOpacity=".15" /><stop offset="1" stopColor="#7bb5ff" stopOpacity="0" /></linearGradient>
           </defs>
-          {[0, 25, 50, 75, 100].map((value) => (
+          {[0, 50, 100].map((value) => (
             <g key={value}>
               <line x1="44" x2="740" y1={y(value)} y2={y(value)} className="grid-line" />
               <text x="6" y={y(value) + 4} className="axis-label">{value}%</text>
@@ -183,13 +182,13 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             const lastValue = observations.at(-1)!.value;
             return <g key={`${name}-${dates.length}`}>
               {name === "Overall" && plotted.length > 1 && <path className="trend-area" d={areaPath(plotted, y(0))} />}
-              <path className="trend-glow" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 12 : 8} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <path className="trend-line" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 4 : 3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <circle className="trend-point" cx={last.x} cy={last.y} r={name === "Overall" ? 5 : 4} fill={colors[name]}><title>{name} · {lastValue}%</title></circle>
+              <path className="trend-glow" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 9 : 7} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <path className="trend-line" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 2.8 : 2.2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <circle className="trend-point" cx={last.x} cy={last.y} r={name === "Overall" ? 3.5 : 3} fill={colors[name]}><title>{name} · {lastValue}%</title></circle>
             </g>;
           })}
           {series[0].observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{series[0].observations.length ? "First check-in baseline · your trend begins with the next saved day" : "No check-ins in this range yet · missing days are not scored as zero"}</text>}
-          {dates.map((date, index) => (index % labelEvery === 0 || index === dates.length - 1) && (
+          {dates.map((date, index) => (index === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
             </text>
