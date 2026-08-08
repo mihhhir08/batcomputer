@@ -494,6 +494,66 @@ body, .app-shell, .challenge-summary, .kpi-grid, .panel, .kpi-card { transition:
 [data-theme="dark"] .recovery-habit { background: #1c2822; }
 [data-theme="dark"] .job-secured-row { color: #8cc9aa; }
 
+/* Restrained product chrome: effects are reserved for data and progress. */
+body { background: var(--canvas); }
+.app-shell { background: none; }
+.brand-mark, .assistant-orb { background: #df7653; box-shadow: none; }
+.topbar h1 { background: none; color: var(--ink); -webkit-text-fill-color: currentColor; }
+.challenge-summary, .kpi-grid, .panel { border-color: var(--line); background: var(--paper); box-shadow: 0 1px 2px rgba(35,30,26,.035); }
+.panel::before { display: none; }
+.panel:hover { box-shadow: 0 1px 2px rgba(35,30,26,.035); }
+.kpi-card, .kpi-card:nth-child(1), .kpi-card.featured, .kpi-card:nth-child(2), .kpi-card:nth-child(3), .kpi-card:nth-child(4) { background: var(--paper); }
+.range-pill, .chart-range, .legend-chip, .legend-chip.active, .theme-toggle { background: #f5f3f0; box-shadow: none; }
+.chart-range button.active { background: #fff; color: #8f422a; box-shadow: inset 0 0 0 1px #e5d7d0; }
+.legend-chip.active { background: #fff; box-shadow: inset 0 0 0 1px #e2ded8; }
+.legend-chip:hover, .theme-toggle:hover { transform: none; }
+.custom-check { background: #fff; box-shadow: none; }
+.habit-row input:checked + .custom-check { background: #46986f; border-color: #46986f; box-shadow: none; }
+.habit-row:has(input:checked) { background: #f6faf8; }
+.group-tag { background: #e9f6f0; }
+.group-tag.content-tag { background: #fff0e8; }
+.group-tag.career-tag { background: #eaf2fb; }
+.comparison-card { border-color: color-mix(in srgb, var(--category-color) 24%, #e6e2dc); background: color-mix(in srgb, var(--category-color) 4%, #fff); box-shadow: none; }
+.assistant-panel { background: #fffaf7; }
+.assistant-insights > div { background: #fff; box-shadow: none; }
+.preview-banner button:not(.ghost-start), .auth-card > button, .upload-button, .job-won-button, .upcoming-habit button { background: #df7653; box-shadow: none; filter: none; }
+.preview-banner button:not(.ghost-start):hover, .auth-card > button:hover:not(:disabled), .upload-button:hover, .job-won-button:hover, .upcoming-habit button:hover { transform: none; background: #cf6948; box-shadow: none; filter: none; }
+.plan-recovery { border-color: #d9d4cd; background: #faf9f7; }
+.milestone.reached > span, .accountability-copy > span { background: #df7653; box-shadow: none; }
+.metric-stepper { background: #fff; box-shadow: none; }
+.metric-stepper > button { background: #f3f0ec; }
+.metric-stepper > button:hover:not(:disabled) { background: #f8e7df; }
+.metric-stepper.complete { background: #f1f8f4; box-shadow: none; }
+.accountability-card { background: #fff8f4; box-shadow: none; }
+.accountability-card.complete { background: #f2faf6; box-shadow: none; }
+.accountability-card.complete .accountability-copy > span { background: #46986f; box-shadow: none; }
+.auth-shell, .loading-shell { background: var(--canvas); }
+.auth-card { border-color: var(--line); background: var(--paper); box-shadow: 0 10px 30px rgba(50,42,36,.08); }
+
+[data-theme="dark"] body, [data-theme="dark"] .app-shell { background: var(--canvas); }
+[data-theme="dark"] .topbar h1 { background: none; color: var(--ink); -webkit-text-fill-color: currentColor; }
+[data-theme="dark"] .challenge-summary, [data-theme="dark"] .kpi-grid, [data-theme="dark"] .panel { border-color: var(--line); background: var(--paper); box-shadow: 0 1px 2px rgba(0,0,0,.18); }
+[data-theme="dark"] .panel:hover { box-shadow: 0 1px 2px rgba(0,0,0,.18); }
+[data-theme="dark"] .kpi-card, [data-theme="dark"] .kpi-card:nth-child(1), [data-theme="dark"] .kpi-card.featured, [data-theme="dark"] .kpi-card:nth-child(2), [data-theme="dark"] .kpi-card:nth-child(3), [data-theme="dark"] .kpi-card:nth-child(4) { background: var(--paper); }
+[data-theme="dark"] .range-pill, [data-theme="dark"] .chart-range, [data-theme="dark"] .legend-chip, [data-theme="dark"] .theme-toggle { background: #272522; box-shadow: none; }
+[data-theme="dark"] .chart-range button.active, [data-theme="dark"] .legend-chip.active { background: #34302c; box-shadow: inset 0 0 0 1px #49443e; }
+[data-theme="dark"] .custom-check { background: #252320; }
+[data-theme="dark"] .habit-row:has(input:checked) { background: #202a25; }
+[data-theme="dark"] .metric-stepper, [data-theme="dark"] .metric-stepper > button { background: #252320; box-shadow: none; }
+[data-theme="dark"] .metric-stepper > button:hover:not(:disabled) { background: #342923; }
+[data-theme="dark"] .metric-stepper.complete { background: #203028; box-shadow: none; }
+[data-theme="dark"] .group-tag { background: #24372e; }
+[data-theme="dark"] .group-tag.content-tag { background: #3a2a23; }
+[data-theme="dark"] .group-tag.career-tag { background: #243440; }
+[data-theme="dark"] .comparison-card { border-color: color-mix(in srgb, var(--category-color) 28%, #393633); background: color-mix(in srgb, var(--category-color) 5%, #1d1c1a); box-shadow: none; }
+[data-theme="dark"] .assistant-panel, [data-theme="dark"] .assistant-insights > div { background: #211f1d; box-shadow: none; }
+[data-theme="dark"] .accountability-card { background: #2a211d; box-shadow: none; }
+[data-theme="dark"] .accountability-card.complete { background: #1f2c25; box-shadow: none; }
+[data-theme="dark"] .accountability-card.complete .accountability-copy > span { background: #46986f; box-shadow: none; }
+[data-theme="dark"] .preview-banner { background: #2a211d; }
+[data-theme="dark"] .notice { background: #1f2c25; }
+[data-theme="dark"] .auth-card { border-color: var(--line); background: var(--paper); box-shadow: 0 10px 30px rgba(0,0,0,.24); }
+
 @media (max-width: 1120px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-card { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
