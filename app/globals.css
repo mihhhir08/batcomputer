@@ -80,8 +80,8 @@ button { cursor: pointer; }
 .trend-wrap { overflow-x: auto; margin: 10px 18px 8px; padding: 0 0 7px; border-block: 1px solid #eeeae5; background: linear-gradient(180deg, rgba(248,249,255,.5), rgba(255,255,255,0)); }
 .trend-chart { display: block; min-width: 570px; width: 100%; height: 265px; }
 .grid-line { stroke: #ebe9e5; stroke-width: 1; }
-.trend-bar { fill: #7957f6; fill-opacity: .065; stroke: none; transform-box: fill-box; transform-origin: bottom; animation: bar-rise .5s ease both; transition: fill-opacity .18s ease; }
-.trend-bar:hover { fill-opacity: .16; }
+.trend-bar { fill: url(#momentum-bars); fill-opacity: .3; stroke: #7957f6; stroke-opacity: .2; stroke-width: .7; transform-box: fill-box; transform-origin: bottom; animation: bar-rise .5s ease both; transition: fill-opacity .18s ease; }
+.trend-bar:hover { fill-opacity: .48; }
 .trend-line { animation: line-fade .4s ease both; filter: drop-shadow(0 2px 3px rgba(66, 78, 145, .12)); }
 .trend-area { fill: url(#momentum-area); filter: drop-shadow(0 18px 22px rgba(82,104,218,.12)); animation: line-fade .65s ease both; }
 .trend-glow { opacity: .14; filter: blur(4px); animation: line-fade .5s ease both; }
@@ -417,6 +417,7 @@ body, .app-shell, .challenge-summary, .kpi-grid, .panel, .kpi-card { transition:
 [data-theme="dark"] .grid-line { stroke: #34312e; }
 [data-theme="dark"] .trend-wrap { border-color: #393633; background: linear-gradient(180deg, rgba(50,47,73,.22), rgba(29,28,26,0)); }
 [data-theme="dark"] .trend-area { filter: drop-shadow(0 18px 25px rgba(92,102,235,.2)); }
+[data-theme="dark"] .trend-bar { fill-opacity: .4; stroke-opacity: .32; }
 [data-theme="dark"] .trend-glow { opacity: .24; }
 [data-theme="dark"] .trend-point { stroke: #1d1c1a; }
 [data-theme="dark"] .habit-row, [data-theme="dark"] .number-row { border-bottom-color: #34312e; }

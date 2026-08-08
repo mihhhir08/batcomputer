@@ -149,13 +149,14 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   const x = (index: number) => dates.length === 1 ? 392 : 44 + (index / (dates.length - 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
   const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
+  const overallPoints = series[0].observations.map(({ index, value }) => ({ x: x(index), y: y(value) }));
 
   return (
     <>
       <div className="chart-legend" aria-label="Chart series">
         {series.map(({ name }) => (
           <button key={name} className={visible[name] ? "legend-chip active" : "legend-chip"} onClick={() => setVisible((old) => ({ ...old, [name]: !old[name] }))}>
-            <span style={{ background: colors[name] }} />{name === "Overall" ? "Overall + bars" : name}
+            <span style={{ background: colors[name] }} />{name === "Overall" ? "Overall score + bars" : name}
           </button>
         ))}
       </div>
@@ -163,6 +164,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
         <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Daily momentum trend by category">
           <defs>
             <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7957f6" stopOpacity=".32" /><stop offset=".5" stopColor="#6695fa" stopOpacity=".15" /><stop offset="1" stopColor="#7bb5ff" stopOpacity="0" /></linearGradient>
+            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7957f6" /><stop offset="1" stopColor="#58a4f8" stopOpacity=".42" /></linearGradient>
           </defs>
           {[0, 50, 100].map((value) => (
             <g key={value}>
@@ -170,6 +172,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               <text x="6" y={y(value) + 4} className="axis-label">{value}%</text>
             </g>
           ))}
+          {visible.Overall && overallPoints.length > 1 && <path className="trend-area" d={areaPath(overallPoints, y(0))} />}
           {visible.Overall && series[0].observations.map(({ index, value }) => (
             <rect key={`bar-${dates.length}-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
@@ -181,7 +184,6 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             const last = plotted.at(-1)!;
             const lastValue = observations.at(-1)!.value;
             return <g key={`${name}-${dates.length}`}>
-              {name === "Overall" && plotted.length > 1 && <path className="trend-area" d={areaPath(plotted, y(0))} />}
               <path className="trend-glow" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 9 : 7} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               <path className="trend-line" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 2.8 : 2.2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               <circle className="trend-point" cx={last.x} cy={last.y} r={name === "Overall" ? 3.5 : 3} fill={colors[name]}><title>{name} · {lastValue}%</title></circle>
