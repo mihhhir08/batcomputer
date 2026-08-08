@@ -83,6 +83,8 @@ button { cursor: pointer; }
 .trend-bar { fill: #ff5d35; fill-opacity: .27; stroke: #ff5d35; stroke-opacity: .52; stroke-width: 1; transform-box: fill-box; transform-origin: bottom; animation: bar-rise .5s ease both; transition: fill-opacity .18s ease; }
 .trend-bar:hover { fill-opacity: .43; }
 .trend-line { animation: line-fade .4s ease both; filter: drop-shadow(0 2px 2px rgba(25, 33, 52, .12)); }
+.trend-point { stroke: #fff; stroke-width: 2; animation: line-fade .4s ease both; }
+.baseline-note { fill: #8d8983; font-size: 8px; font-family: Inter, ui-sans-serif, sans-serif; }
 .axis-label { fill: #a3a4aa; font-size: 9px; font-family: Inter, ui-sans-serif, sans-serif; }
 
 .daily-panel { grid-column: 2; grid-row: span 2; }

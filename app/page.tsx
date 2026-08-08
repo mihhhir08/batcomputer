@@ -122,7 +122,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
     name,
     values: dates.map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[name as keyof ReturnType<typeof categoryScores>]),
   }));
-  const x = (index: number) => 44 + (index / Math.max(dates.length - 1, 1)) * 696;
+  const x = (index: number) => dates.length === 1 ? 392 : 44 + (index / (dates.length - 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
   const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
   const labelEvery = Math.max(1, Math.ceil(dates.length / 7));
@@ -149,19 +149,17 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
-          {series.map(({ name, values }) => visible[name] && (
-            <polyline
-              key={`${name}-${dates.length}`}
-              className="trend-line"
-              points={values.map((value, index) => `${x(index)},${y(value)}`).join(" ")}
-              fill="none"
-              stroke={colors[name]}
-              strokeWidth={name === "Overall" ? 4 : 3}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
+          {series.map(({ name, values }, seriesIndex) => {
+            if (!visible[name]) return null;
+            const markerX = x(0) + (seriesIndex - 1.5) * 25;
+            const points = values.length === 1 ? `${markerX - 9},${y(values[0])} ${markerX + 9},${y(values[0])}` : values.map((value, index) => `${x(index)},${y(value)}`).join(" ");
+            const lastX = values.length === 1 ? markerX : x(values.length - 1);
+            return <g key={`${name}-${dates.length}`}>
+              <polyline className="trend-line" points={points} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 4 : 3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <circle className="trend-point" cx={lastX} cy={y(values.at(-1) ?? 0)} r={name === "Overall" ? 5 : 4} fill={colors[name]}><title>{name} · {values.at(-1)}%</title></circle>
+            </g>;
+          })}
+          {dates.length === 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">Day 1 baseline · connecting trends begin after your next check-in</text>}
           {dates.map((date, index) => (index % labelEvery === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
