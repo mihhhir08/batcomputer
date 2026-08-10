@@ -291,19 +291,13 @@ function SignIn() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   async function sendLink() {
     if (!supabase || !email) return;
     setSending(true);
-    const consentData = marketingOptIn ? { marketing_opt_in: true, marketing_opted_in_at: new Date().toISOString(), marketing_consent_version: "2026-08-10" } : null;
-    if (consentData) window.localStorage.setItem("momentum-marketing-consent", JSON.stringify(consentData));
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: window.location.origin,
-        ...(consentData ? { data: consentData } : {}),
-      },
+      options: { emailRedirectTo: window.location.origin },
     });
     setMessage(error ? error.message : "Check your inbox for your private sign-in link.");
     setSending(false);
@@ -317,7 +311,6 @@ function SignIn() {
         <h1>Build momentum.<br />Keep the evidence.</h1>
         <p>Create your free workspace and sync your 90-day transformation across devices.</p>
         <label>Email address<input type="email" value={email} placeholder="you@example.com" onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => event.key === "Enter" && sendLink()} /></label>
-        <label className="marketing-consent"><input type="checkbox" checked={marketingOptIn} onChange={(event) => setMarketingOptIn(event.target.checked)} /><span className="consent-check">✓</span><span><strong>Keep me in the loop</strong><small>Send me occasional Momentum updates, useful resources, and future product launches. Optional.</small></span></label>
         <button onClick={sendLink} disabled={sending || !email}>{sending ? "Sending…" : "Email me a sign-in link"}</button>
         {message && <div className="auth-message" role="status">{message}</div>}
         <small>Passwordless · Private · Encrypted in transit</small>
@@ -426,19 +419,6 @@ export default function Home() {
       const { data: signed } = await client.storage.from("progress-photos").createSignedUrl(`${session.user.id}/${data[0].name}`, 3600);
       if (signed?.signedUrl) setPhoto(signed.signedUrl);
     });
-  }, [session]);
-
-  useEffect(() => {
-    if (!supabase || !session) return;
-    const pendingConsent = window.localStorage.getItem("momentum-marketing-consent");
-    if (!pendingConsent) return;
-    try {
-      supabase.auth.updateUser({ data: JSON.parse(pendingConsent) }).then(({ error }) => {
-        if (!error) window.localStorage.removeItem("momentum-marketing-consent");
-      });
-    } catch {
-      window.localStorage.removeItem("momentum-marketing-consent");
-    }
   }, [session]);
 
   useEffect(() => {

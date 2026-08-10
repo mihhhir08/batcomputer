@@ -48,7 +48,6 @@ The daily score is a 100-point impact model rather than a checkbox count. X and 
 | ✦ | **Assistant review** | Summarizes what went well, what went wrong, and what to improve after the first week. |
 | ● | **Cloud confidence** | Shows live saving, saved, local-only, and sync-error states. |
 | ◫ | **Day 90 report** | Concludes the challenge with the core body, consistency, content, and career totals. |
-| ✉ | **Consent-first audience** | Sign-in can optionally record newsletter and product-update consent in Supabase Auth metadata. |
 
 The interface is deliberately encouraging: a missed action never resets the challenge, and recovery language points toward the next useful choice instead of punishing an imperfect day.
 
@@ -68,12 +67,6 @@ Daily check-in
 ```
 
 The application code and personal data are intentionally separate. Git commits and Vercel deployments replace the interface, not the challenge history.
-
-## Public launch and email consent
-
-Supabase Auth stores the email address required for passwordless sign-in. The optional **Keep me in the loop** checkbox separately records `marketing_opt_in`, its timestamp, and a consent-version value in that user’s Auth metadata.
-
-Only users with `marketing_opt_in: true` should be added to a newsletter or product-launch list. Before sending campaigns, connect a mailing provider with unsubscribe handling and publish a privacy policy explaining what is collected and why.
 
 ## Run locally
 
