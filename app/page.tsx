@@ -250,7 +250,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             const lastPoint = points.at(-1);
             if (!lastPoint) return null;
             return <g key={`${name}-${dates.length}`}>
-              <path className={`trend-line trend-${name.toLowerCase()}`} d={curvePath(points)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? "3" : "2.4"} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <path className="trend-line" d={curvePath(points)} fill="none" stroke={colors[name]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               <circle className="trend-point" cx={lastPoint.x} cy={lastPoint.y} r={name === "Overall" ? "4" : "3.2"} fill={colors[name]}><title>{name} · {observations.at(-1)?.value}%</title></circle>
             </g>;
           })}

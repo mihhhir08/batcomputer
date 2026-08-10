@@ -783,8 +783,6 @@ body { background: var(--canvas); }
 .chart-key { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; font-weight: 600; }
 .chart-key i { width: 20px; height: 3px; border-radius: 999px; }
 .trend-bar { fill-opacity: .2; stroke-opacity: .22; }
-.trend-audience { stroke-dasharray: 8 5; }
-.trend-career { stroke-dasharray: 2 5; }
 .trend-line { opacity: 1; }
 .goal-balance-head span { text-align: right; }
 .goal-card { border: 1px solid var(--line); background: var(--paper); }
