@@ -207,8 +207,8 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const [visible, setVisible] = useState<Record<string, boolean>>({ Overall: true, Audience: true, Career: true, Body: true, Hair: true });
-  const colors: Record<string, string> = { Overall: "#7957f6", Audience: "#ff6b43", Career: "#16b364", Body: "#48a0f8", Hair: "#d28b31" };
+  const [selected, setSelected] = useState("Overall");
+  const colors: Record<string, string> = { Overall: "#ff7a59", Audience: "#ff7a59", Career: "#3fb950", Body: "#58a6ff", Hair: "#d29922" };
   const series = Object.keys(colors).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -220,22 +220,25 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   const x = (index: number) => dates.length === 1 ? 392 : 44 + (index / (dates.length - 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
   const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
-  const overallPoints = series[0].observations.map(({ index, value }) => ({ x: x(index), y: y(value) }));
+  const selectedSeries = series.find(({ name }) => name === selected)!;
+  const selectedPoints = selectedSeries.observations.map(({ index, value }) => ({ x: x(index), y: y(value) }));
+  const lastPoint = selectedPoints.at(-1);
+  const lastValue = selectedSeries.observations.at(-1)?.value;
 
   return (
     <>
-      <div className="chart-legend" aria-label="Chart series">
+      <div className="chart-legend" role="group" aria-label="Metric shown in chart">
         {series.map(({ name }) => (
-          <button key={name} className={visible[name] ? "legend-chip active" : "legend-chip"} onClick={() => setVisible((old) => ({ ...old, [name]: !old[name] }))}>
-            <span style={{ background: colors[name] }} />{name === "Overall" ? "Overall score + bars" : name}
+          <button key={name} className={selected === name ? "legend-chip active" : "legend-chip"} aria-pressed={selected === name} onClick={() => setSelected(name)}>
+            <span style={{ background: colors[name] }} />{name}
           </button>
         ))}
       </div>
       <div className="trend-wrap">
-        <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Daily momentum trend by category">
+        <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label={`${selected} daily momentum trend`}>
           <defs>
-            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7957f6" stopOpacity=".32" /><stop offset=".5" stopColor="#6695fa" stopOpacity=".15" /><stop offset="1" stopColor="#7bb5ff" stopOpacity="0" /></linearGradient>
-            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7957f6" /><stop offset="1" stopColor="#58a4f8" stopOpacity=".42" /></linearGradient>
+            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors[selected]} stopOpacity=".28" /><stop offset="1" stopColor={colors[selected]} stopOpacity="0" /></linearGradient>
+            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff7a59" stopOpacity=".72" /><stop offset="1" stopColor="#ff7a59" stopOpacity=".16" /></linearGradient>
           </defs>
           {[0, 50, 100].map((value) => (
             <g key={value}>
@@ -243,24 +246,18 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               <text x="6" y={y(value) + 4} className="axis-label">{value}%</text>
             </g>
           ))}
-          {visible.Overall && overallPoints.length > 1 && <path className="trend-area" d={areaPath(overallPoints, y(0))} />}
-          {visible.Overall && series[0].observations.map(({ index, value }) => (
+          {selectedPoints.length > 1 && <path className="trend-area" d={areaPath(selectedPoints, y(0))} />}
+          {selected === "Overall" && series[0].observations.map(({ index, value }) => (
             <rect key={`bar-${dates.length}-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
-          {series.map(({ name, observations }, seriesIndex) => {
-            if (!visible[name] || !observations.length) return null;
-            const plotted = observations.map(({ index, value }) => ({ x: observations.length === 1 ? x(index) + (seriesIndex - 1.5) * 12 : x(index), y: y(value) }));
-            const last = plotted.at(-1)!;
-            const lastValue = observations.at(-1)!.value;
-            return <g key={`${name}-${dates.length}`}>
-              <path className="trend-glow" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 9 : 7} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <path className="trend-line" d={curvePath(plotted)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? 2.8 : 2.2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <circle className="trend-point" cx={last.x} cy={last.y} r={name === "Overall" ? 3.5 : 3} fill={colors[name]}><title>{name} · {lastValue}%</title></circle>
-            </g>;
-          })}
-          {series[0].observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{series[0].observations.length ? "First check-in baseline · your trend begins with the next saved day" : "No check-ins in this range yet · missing days are not scored as zero"}</text>}
+          {lastPoint && <g key={`${selected}-${dates.length}`}>
+              <path className="trend-glow" d={curvePath(selectedPoints)} fill="none" stroke={colors[selected]} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <path className="trend-line" d={curvePath(selectedPoints)} fill="none" stroke={colors[selected]} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <circle className="trend-point" cx={lastPoint.x} cy={lastPoint.y} r="3.5" fill={colors[selected]}><title>{selected} · {lastValue}%</title></circle>
+            </g>}
+          {selectedSeries.observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{selectedSeries.observations.length ? `First ${selected.toLowerCase()} baseline · the trend begins with the next saved day` : `No ${selected.toLowerCase()} check-ins in this range yet`}</text>}
           {dates.map((date, index) => (index === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}

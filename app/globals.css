@@ -770,6 +770,25 @@ body { background: var(--canvas); }
 [data-theme="dark"] .marketing-consent input:checked + .consent-check { border-color: #ff7a59; background: #ff7a59; color: #fff; }
 [data-theme="dark"] .auth-message { background: #14251d; color: #72d49d; }
 
+/* Restrained color roles: neutral chrome, color only when it carries meaning. */
+.kpi-grid .kpi-card .kpi-value { color: var(--ink); }
+.kpi-grid .kpi-card.featured .kpi-value { color: #c96140; }
+.xp-row > i b, .impact-progress span { background: #df7653; box-shadow: none; }
+.group-tag, .group-tag.audience-tag, .group-tag.career-tag, .group-tag.hair-tag { border-left: 2px solid #58a6ff; background: #f2f1ee; color: #68645e; }
+.group-tag.audience-tag { border-left-color: #ff7a59; }
+.group-tag.career-tag { border-left-color: #3fb950; }
+.group-tag.hair-tag { border-left-color: #d29922; }
+.comparison-card { border-color: var(--line); background: var(--paper); }
+.trend-line, .trend-area { filter: none; }
+.trend-glow { opacity: .16; }
+.trend-bar { stroke: #ff7a59; }
+[data-theme="dark"] .kpi-grid .kpi-card .kpi-value { color: #f0f6fc; }
+[data-theme="dark"] .kpi-grid .kpi-card.featured .kpi-value { color: #ff8a65; }
+[data-theme="dark"] .group-tag, [data-theme="dark"] .group-tag.audience-tag, [data-theme="dark"] .group-tag.career-tag, [data-theme="dark"] .group-tag.hair-tag { background: #21262d; color: #b1bac4; }
+[data-theme="dark"] .comparison-card { border-color: #30363d; background: #161b22; }
+[data-theme="dark"] .trend-line, [data-theme="dark"] .trend-area { filter: none; }
+[data-theme="dark"] .trend-glow { opacity: .2; }
+
 @media (max-width: 1120px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-card { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
