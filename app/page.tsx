@@ -207,12 +207,10 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const [selected, setSelected] = useState("Overall");
-  const colors: Record<string, string> = { Overall: "#ff7a59", Audience: "#ff7a59", Career: "#3fb950", Body: "#58a6ff", Hair: "#d29922" };
-  const series = Object.keys(colors).map((name) => ({
+  const colors = { Overall: "#ff7a59", Audience: "#58a6ff", Career: "#3fb950" } as const;
+  const series = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
-      if (name === "Hair" && dateKey(date) < WELLNESS_START_DATE) return [];
       const log = logs[dateKey(date)];
       return log ? [{ index, value: categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn)[name as keyof ReturnType<typeof categoryScores>] }] : [];
     }),
@@ -220,24 +218,19 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   const x = (index: number) => dates.length === 1 ? 392 : 44 + (index / (dates.length - 1)) * 696;
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
   const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
-  const selectedSeries = series.find(({ name }) => name === selected)!;
-  const selectedPoints = selectedSeries.observations.map(({ index, value }) => ({ x: x(index), y: y(value) }));
-  const lastPoint = selectedPoints.at(-1);
-  const lastValue = selectedSeries.observations.at(-1)?.value;
+  const overall = series[0];
 
   return (
     <>
-      <div className="chart-legend" role="group" aria-label="Metric shown in chart">
+      <div className="chart-legend" aria-label="Metrics shown in chart">
         {series.map(({ name }) => (
-          <button key={name} className={selected === name ? "legend-chip active" : "legend-chip"} aria-pressed={selected === name} onClick={() => setSelected(name)}>
-            <span style={{ background: colors[name] }} />{name}
-          </button>
+          <span key={name} className="chart-key"><i style={{ background: colors[name] }} />{name}</span>
         ))}
       </div>
       <div className="trend-wrap">
-        <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label={`${selected} daily momentum trend`}>
+        <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Overall, audience, and career daily score trends">
           <defs>
-            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors[selected]} stopOpacity=".28" /><stop offset="1" stopColor={colors[selected]} stopOpacity="0" /></linearGradient>
+            <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors.Overall} stopOpacity=".22" /><stop offset="1" stopColor={colors.Overall} stopOpacity="0" /></linearGradient>
             <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff7a59" stopOpacity=".72" /><stop offset="1" stopColor="#ff7a59" stopOpacity=".16" /></linearGradient>
           </defs>
           {[0, 50, 100].map((value) => (
@@ -246,18 +239,22 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               <text x="6" y={y(value) + 4} className="axis-label">{value}%</text>
             </g>
           ))}
-          {selectedPoints.length > 1 && <path className="trend-area" d={areaPath(selectedPoints, y(0))} />}
-          {selected === "Overall" && series[0].observations.map(({ index, value }) => (
+          {overall.observations.length > 1 && <path className="trend-area" d={areaPath(overall.observations.map(({ index, value }) => ({ x: x(index), y: y(value) })), y(0))} />}
+          {overall.observations.map(({ index, value }) => (
             <rect key={`bar-${dates.length}-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
-          {lastPoint && <g key={`${selected}-${dates.length}`}>
-              <path className="trend-glow" d={curvePath(selectedPoints)} fill="none" stroke={colors[selected]} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <path className="trend-line" d={curvePath(selectedPoints)} fill="none" stroke={colors[selected]} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <circle className="trend-point" cx={lastPoint.x} cy={lastPoint.y} r="3.5" fill={colors[selected]}><title>{selected} · {lastValue}%</title></circle>
-            </g>}
-          {selectedSeries.observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{selectedSeries.observations.length ? `First ${selected.toLowerCase()} check-in saved · add another day to see the trend` : `No ${selected.toLowerCase()} check-ins in this range yet`}</text>}
+          {series.map(({ name, observations }) => {
+            const points = observations.map(({ index, value }) => ({ x: x(index), y: y(value) }));
+            const lastPoint = points.at(-1);
+            if (!lastPoint) return null;
+            return <g key={`${name}-${dates.length}`}>
+              <path className={`trend-line trend-${name.toLowerCase()}`} d={curvePath(points)} fill="none" stroke={colors[name]} strokeWidth={name === "Overall" ? "3" : "2.4"} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <circle className="trend-point" cx={lastPoint.x} cy={lastPoint.y} r={name === "Overall" ? "4" : "3.2"} fill={colors[name]}><title>{name} · {observations.at(-1)?.value}%</title></circle>
+            </g>;
+          })}
+          {overall.observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{overall.observations.length ? "First check-in saved · add another day to compare the trends" : "No check-ins in this range yet"}</text>}
           {dates.map((date, index) => (index === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
@@ -666,7 +663,14 @@ export default function Home() {
 
           <article className="panel daily-panel" id="today">
             <div className="panel-header"><div><p className="eyebrow">Today</p><h2>Weighted commitments</h2></div><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
-            <div className={`accountability-card${distributionComplete ? " complete" : ""}`}><div className="accountability-copy"><span>{distributionComplete ? "✓" : "!"}</span><div><strong>{distributionComplete ? "Distribution mission complete." : "The work is unfinished."}</strong><small>{distributionComplete ? "You did the part under your control. Every extra X post earns more XP." : `Your goals need proof: ${xPostsRemaining ? `${xPostsRemaining} more X ${xPostsRemaining === 1 ? "post" : "posts"}` : "X minimum complete"}${todayLog.linkedin ? "." : " and 1 LinkedIn post."}`}</small></div></div><div className="mission-chips"><span className={xPostsRemaining === 0 ? "done" : ""}>X · {xPostsToday}/15 minimum{xPostsToday > 15 ? ` · +${xPostsToday - 15} extra` : ""}</span><span className={todayLog.linkedin ? "done" : ""}>LinkedIn · {todayLog.linkedin ? "done" : "pending"}</span></div></div>
+            <div className={`accountability-card${distributionComplete ? " complete" : ""}`}>
+              <div className="mission-head"><div><span>Highest priority</span><strong>{distributionComplete ? "Distribution complete" : "Finish today’s distribution"}</strong></div><b>{Number(xPostsRemaining === 0) + Number(todayLog.linkedin)}/2</b></div>
+              <p>{distributionComplete ? "The minimum is secured. Extra X posts now add XP without changing the daily score." : "These two actions create the audience that compounds every other goal."}</p>
+              <div className="mission-targets">
+                <div className={xPostsRemaining === 0 ? "done" : ""}><i>{xPostsRemaining === 0 ? "✓" : "1"}</i><span><strong>X publishing</strong><small>{xPostsRemaining ? `${xPostsRemaining} posts remaining` : `${xPostsToday} posted · minimum reached`}</small></span></div>
+                <div className={todayLog.linkedin ? "done" : ""}><i>{todayLog.linkedin ? "✓" : "2"}</i><span><strong>LinkedIn</strong><small>{todayLog.linkedin ? "Published today" : "1 post remaining"}</small></span></div>
+              </div>
+            </div>
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
@@ -677,22 +681,27 @@ export default function Home() {
               </div>
             </section>
             <div className="habit-list">
-              {HABITS.map((habit) => habit.key === "x" && contentVolumeActiveToday ? (
-                <div className="number-row content-volume-row" key={habit.key}><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
-              ) : habit.key === "strength" && todayLog.recovery ? (
-                <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
-              ) : habit.key === "instagram" && !instagramActiveToday ? (
-                <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark">○</span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
-              ) : (
-                <label className="habit-row" key={habit.key}>
-                  <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
-                  <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
-                </label>
-              ))}
-              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
-              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
-              {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
-              {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
+              <section className="task-group checklist-group">
+                <div className="task-group-head"><strong>Daily checks</strong><span>Mark once when complete</span></div>
+                {HABITS.filter((habit) => habit.key !== "x" || !contentVolumeActiveToday).map((habit) => habit.key === "strength" && todayLog.recovery ? (
+                  <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
+                ) : habit.key === "instagram" && !instagramActiveToday ? (
+                  <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark">○</span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
+                ) : (
+                  <label className="habit-row" key={habit.key}>
+                    <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
+                    <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
+                  </label>
+                ))}
+                {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
+              </section>
+              <section className="task-group metric-group">
+                <div className="task-group-head"><strong>Measured targets</strong><span>Update progress during the day</span></div>
+                {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
+                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+                <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
+                <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
+              </section>
             </div>
           </article>
 
