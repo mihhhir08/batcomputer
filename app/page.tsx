@@ -294,13 +294,19 @@ function SignIn() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   async function sendLink() {
     if (!supabase || !email) return;
     setSending(true);
+    const consentData = marketingOptIn ? { marketing_opt_in: true, marketing_opted_in_at: new Date().toISOString(), marketing_consent_version: "2026-08-10" } : null;
+    if (consentData) window.localStorage.setItem("momentum-marketing-consent", JSON.stringify(consentData));
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        ...(consentData ? { data: consentData } : {}),
+      },
     });
     setMessage(error ? error.message : "Check your inbox for your private sign-in link.");
     setSending(false);
@@ -312,8 +318,9 @@ function SignIn() {
         <span className="brand-mark">M</span>
         <p className="eyebrow">Your private workspace</p>
         <h1>Build momentum.<br />Keep the evidence.</h1>
-        <p>Sign in to sync your 90-day transformation across devices.</p>
+        <p>Create your free workspace and sync your 90-day transformation across devices.</p>
         <label>Email address<input type="email" value={email} placeholder="you@example.com" onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => event.key === "Enter" && sendLink()} /></label>
+        <label className="marketing-consent"><input type="checkbox" checked={marketingOptIn} onChange={(event) => setMarketingOptIn(event.target.checked)} /><span className="consent-check">✓</span><span><strong>Keep me in the loop</strong><small>Send me occasional Momentum updates, useful resources, and future product launches. Optional.</small></span></label>
         <button onClick={sendLink} disabled={sending || !email}>{sending ? "Sending…" : "Email me a sign-in link"}</button>
         {message && <div className="auth-message" role="status">{message}</div>}
         <small>Passwordless · Private · Encrypted in transit</small>
@@ -332,7 +339,7 @@ export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -340,7 +347,7 @@ export default function Home() {
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("momentum-90-theme");
-    const initialTheme = savedTheme === "dark" ? "dark" : "light";
+    const initialTheme = savedTheme === "light" ? "light" : "dark";
     document.documentElement.dataset.theme = initialTheme;
     queueMicrotask(() => setTheme(initialTheme));
   }, []);
@@ -422,6 +429,19 @@ export default function Home() {
       const { data: signed } = await client.storage.from("progress-photos").createSignedUrl(`${session.user.id}/${data[0].name}`, 3600);
       if (signed?.signedUrl) setPhoto(signed.signedUrl);
     });
+  }, [session]);
+
+  useEffect(() => {
+    if (!supabase || !session) return;
+    const pendingConsent = window.localStorage.getItem("momentum-marketing-consent");
+    if (!pendingConsent) return;
+    try {
+      supabase.auth.updateUser({ data: JSON.parse(pendingConsent) }).then(({ error }) => {
+        if (!error) window.localStorage.removeItem("momentum-marketing-consent");
+      });
+    } catch {
+      window.localStorage.removeItem("momentum-marketing-consent");
+    }
   }, [session]);
 
   useEffect(() => {
@@ -649,7 +669,7 @@ export default function Home() {
           </div>
         </header>
 
-        {preview && <div className="preview-banner"><span><strong>Preview data</strong> — See how your analytics will feel once you build momentum.</span><div><button onClick={() => leavePreview("2026-08-07")}>Start Aug 7</button><button className="ghost-start" onClick={() => leavePreview("2026-08-08")}>Start Aug 8</button></div></div>}
+        {preview && <div className="preview-banner"><span><strong>Preview data</strong> — See how your analytics will feel once you build momentum.</span><div><button onClick={() => leavePreview(todayKey)}>Start today</button><button className="ghost-start" onClick={() => leavePreview(dateKey(addDays(today, -1)))}>Started yesterday</button></div></div>}
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
         <section className="kpi-grid" aria-label="Key metrics">

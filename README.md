@@ -4,7 +4,7 @@
 
 ### Your transformation, in motion.
 
-A focused 90-day dashboard for turning daily actions into visible momentum across body recomposition, publishing, and career goals.
+A free 90-day dashboard for turning daily actions into visible momentum across body recomposition, publishing, and career goals.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-111111?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-2879FF?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
@@ -12,7 +12,7 @@ A focused 90-day dashboard for turning daily actions into visible momentum acros
 [![Vercel](https://img.shields.io/badge/Vercel-ready-111111?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-**Public code. Private progress.** Personal records and photos live in your own Supabase project—not in this repository.
+**Public product. Private progress.** Every account sees only its own records and photos through Supabase row-level security.
 
 </div>
 
@@ -48,6 +48,7 @@ The daily score is a 100-point impact model rather than a checkbox count. X and 
 | ✦ | **Assistant review** | Summarizes what went well, what went wrong, and what to improve after the first week. |
 | ● | **Cloud confidence** | Shows live saving, saved, local-only, and sync-error states. |
 | ◫ | **Day 90 report** | Concludes the challenge with the core body, consistency, content, and career totals. |
+| ✉ | **Consent-first audience** | Sign-in can optionally record newsletter and product-update consent in Supabase Auth metadata. |
 
 The interface is deliberately encouraging: a missed action never resets the challenge, and recovery language points toward the next useful choice instead of punishing an imperfect day.
 
@@ -67,6 +68,12 @@ Daily check-in
 ```
 
 The application code and personal data are intentionally separate. Git commits and Vercel deployments replace the interface, not the challenge history.
+
+## Public launch and email consent
+
+Supabase Auth stores the email address required for passwordless sign-in. The optional **Keep me in the loop** checkbox separately records `marketing_opt_in`, its timestamp, and a consent-version value in that user’s Auth metadata.
+
+Only users with `marketing_opt_in: true` should be added to a newsletter or product-launch list. Before sending campaigns, connect a mailing provider with unsubscribe handling and publish a privacy policy explaining what is collected and why.
 
 ## Run locally
 
