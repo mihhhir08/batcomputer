@@ -257,7 +257,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               <path className="trend-line" d={curvePath(selectedPoints)} fill="none" stroke={colors[selected]} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               <circle className="trend-point" cx={lastPoint.x} cy={lastPoint.y} r="3.5" fill={colors[selected]}><title>{selected} · {lastValue}%</title></circle>
             </g>}
-          {selectedSeries.observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{selectedSeries.observations.length ? `First ${selected.toLowerCase()} baseline · the trend begins with the next saved day` : `No ${selected.toLowerCase()} check-ins in this range yet`}</text>}
+          {selectedSeries.observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{selectedSeries.observations.length ? `First ${selected.toLowerCase()} check-in saved · add another day to see the trend` : `No ${selected.toLowerCase()} check-ins in this range yet`}</text>}
           {dates.map((date, index) => (index === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
@@ -455,7 +455,6 @@ export default function Home() {
   const todayPoints = goalPoints(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
   const todayGoalScores = categoryScores(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
   const todayScore = score(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
-  const balancedToday = (["Audience", "Career", "Body", "Hair"] as const).every((goal) => todayGoalScores[goal] > 0);
   const scalpStreak = currentStreak(logs, today, (log) => log.scalpMassage);
   const xPostsRemaining = Math.max(0, 15 - xPostsToday);
   const distributionComplete = xPostsRemaining === 0 && todayLog.linkedin;
@@ -638,7 +637,7 @@ export default function Home() {
     <main className="app-shell">
       <section className="content" id="overview">
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><span aria-hidden="true">{theme === "light" ? "☼" : "☾"}</span>{theme === "light" ? "Light" : "Dark"}</button></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Your transformation, in motion.</h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><span aria-hidden="true">{theme === "light" ? "☼" : "☾"}</span>{theme === "light" ? "Light" : "Dark"}</button></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Build the evidence, one day at a time.</h1></div>
           <div className="challenge-summary">
             <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
@@ -651,8 +650,7 @@ export default function Home() {
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
         <section className="kpi-grid" aria-label="Key metrics">
-          <article className="kpi-card featured"><div className="kpi-top"><span>Weekly momentum</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `vs. ${previousScore} same period last week` : `${weekDayCount} ${weekDayCount === 1 ? "day" : "days"} building your baseline`}</p></article>
-          <article className="kpi-card"><div className="kpi-top"><span>Today’s impact</span><span className="status-dot" /></div><div className="kpi-value">{todayScore}<small>/100</small></div><div className="impact-progress"><span style={{ width: `${todayScore}%` }} /></div><p>{todayScore >= 85 && balancedToday ? "Exceptional, balanced execution" : todayScore >= 85 ? "High score · one goal is still empty" : todayScore >= 70 ? "Strong day in progress" : todayScore >= 50 ? "Partial execution · keep moving" : "Highest-impact work is still available"}</p></article>
+          <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
           <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
           <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
             const log = logs[dateKey(date)] ?? EMPTY_LOG;
@@ -662,15 +660,15 @@ export default function Home() {
 
         <section className="dashboard-grid">
           <article className="panel chart-panel">
-            <div className="panel-header"><div><p className="eyebrow">All systems</p><h2>Momentum trend</h2></div><div className="chart-range" role="group" aria-label="Momentum chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
+            <div className="panel-header"><div><p className="eyebrow">Performance</p><h2>Daily score trend</h2></div><div className="chart-range" role="group" aria-label="Momentum chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
             <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
           <article className="panel daily-panel" id="today">
-            <div className="panel-header"><div><p className="eyebrow">Daily operating system</p><h2>Today’s weighted commitments</h2></div><span className="score-ring" style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Today</p><h2>Weighted commitments</h2></div><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
             <div className={`accountability-card${distributionComplete ? " complete" : ""}`}><div className="accountability-copy"><span>{distributionComplete ? "✓" : "!"}</span><div><strong>{distributionComplete ? "Distribution mission complete." : "The work is unfinished."}</strong><small>{distributionComplete ? "You did the part under your control. Every extra X post earns more XP." : `Your goals need proof: ${xPostsRemaining ? `${xPostsRemaining} more X ${xPostsRemaining === 1 ? "post" : "posts"}` : "X minimum complete"}${todayLog.linkedin ? "." : " and 1 LinkedIn post."}`}</small></div></div><div className="mission-chips"><span className={xPostsRemaining === 0 ? "done" : ""}>X · {xPostsToday}/15 minimum{xPostsToday > 15 ? ` · +${xPostsToday - 15} extra` : ""}</span><span className={todayLog.linkedin ? "done" : ""}>LinkedIn · {todayLog.linkedin ? "done" : "pending"}</span></div></div>
             <section className="goal-balance" aria-label="Today’s impact by goal">
-              <div className="goal-balance-head"><strong>Impact by goal</strong><span>Every system stays visible</span></div>
+              <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
                 <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ff6b43" />
                 <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#16b364" />
@@ -680,7 +678,7 @@ export default function Home() {
             </section>
             <div className="habit-list">
               {HABITS.map((habit) => habit.key === "x" && contentVolumeActiveToday ? (
-                <div className="number-row content-volume-row" key={habit.key}><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>20 pts</em></span><small>15 minimum · no upper limit</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
+                <div className="number-row content-volume-row" key={habit.key}><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>
               ) : habit.key === "strength" && todayLog.recovery ? (
                 <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
               ) : habit.key === "instagram" && !instagramActiveToday ? (
@@ -691,15 +689,15 @@ export default function Home() {
                   <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                 </label>
               ))}
-              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
-              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>5 pts</em></span><small>3 L earns full impact · 4 L is the upper target</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
-              {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
+              <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
+              {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
               {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
             </div>
           </article>
 
           <article className="panel weekly-panel" id="weekly">
-            <div className="panel-header"><div><p className="eyebrow">Week over week</p><h2>Your momentum by system</h2></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">Week 1 baseline</span>}</div>
+            <div className="panel-header"><div><p className="eyebrow">Comparison</p><h2>This week vs. last week</h2></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
             <div className="comparison-grid">
               {(["Audience", "Career", "Body", "Hair"] as const).map((category) => {
                 const current = categoryAverage(weekDates, category);
@@ -707,11 +705,11 @@ export default function Home() {
                 const change = current - prior;
                 const color = { Audience: "#ff6b43", Career: "#16b364", Body: "#48a0f8", Hair: "#d28b31" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
-                  <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Baseline"}</em></div>
+                  <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Week 1"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
                   <div className="week-bars" role="img" aria-label={hasPreviousWeek ? `${category}: ${current}% this week, ${prior}% for the same period last week` : `${category}: ${current}% in the first challenge week`}>
                     <div><span>This week</span><i><b style={{ width: `${current}%` }} /></i><strong>{current}</strong></div>
-                    <div className="previous"><span>Previous</span><i><b style={{ width: `${prior}%` }} /></i><strong>{hasPreviousWeek ? prior : "—"}</strong></div>
+                    {hasPreviousWeek && <div className="previous"><span>Last week</span><i><b style={{ width: `${prior}%` }} /></i><strong>{prior}</strong></div>}
                   </div>
                 </section>;
               })}
@@ -719,12 +717,12 @@ export default function Home() {
           </article>
 
           {reviewAvailable && <article className="panel assistant-panel">
-            <div className="assistant-heading"><span className="assistant-orb">M</span><div><p className="eyebrow">Momentum assistant · weekly review</p><h2>Here’s what your data is saying.</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
-            <div className="assistant-insights"><div className="win"><span>01</span><p>What went well</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><span>02</span><p>What went wrong</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><span>03</span><p>What to improve</p><strong>{hasPreviousWeek ? weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.` : `Carry your strongest ${strongestCategory.category.toLowerCase()} routine into Week 2.`}</strong></div></div>
+            <div className="assistant-heading"><div><p className="eyebrow">Weekly review</p><h2>What the data suggests</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
+            <div className="assistant-insights"><div className="win"><p>Strongest</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><p>Needs attention</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><p>Next move</p><strong>{hasPreviousWeek ? weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.` : `Carry your strongest ${strongestCategory.category.toLowerCase()} routine into Week 2.`}</strong></div></div>
           </article>}
 
           <article className="panel heatmap-panel">
-            <div className="panel-header"><div><p className="eyebrow">Consistency map</p><h2>Your 90 days, one square at a time</h2></div><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Consistency</p><h2>90-day activity</h2></div><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
             <div className="heatmap-wrap">
               <div className="heatmap" role="img" aria-label="90-day consistency map">
                 {challengeDays.map((date, index) => {
@@ -739,14 +737,14 @@ export default function Home() {
           </article>
 
           <article className="panel body-panel" id="body">
-            <div className="panel-header"><div><p className="eyebrow">Body recomposition</p><h2>Weekly weight trend</h2></div><span className="range-pill">Check in once a week</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Body</p><h2>Weekly weight trend</h2></div><span className="range-pill">Weekly check-in</span></div>
             <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>goal <small>kg</small></strong><em>Retain strength and muscle</em></div></div>
             <WeightTrend entries={weeklyWeightEntries} />
-            <div className="body-note"><span>i</span><p>Because muscle gain can mask fat loss on the scale, progress is judged across weight, waist, strength consistency, and photos.</p></div>
+            <div className="body-note"><span>i</span><p>Scale weight is only one signal. Use the trend with strength consistency and progress photos; the body-fat figure is a directional estimate from your starting measurements.</p></div>
           </article>
 
           <article className="panel photos-panel">
-            <div className="panel-header"><div><p className="eyebrow">Visual progress</p><h2>Progress photos</h2></div><span className="range-pill">Private</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Photos</p><h2>Visual progress</h2></div><span className="range-pill">Private</span></div>
             <div className="photo-content">
               <div className={photo ? "photo-preview has-photo" : "photo-preview"} style={photo ? { backgroundImage: `url(${photo})` } : undefined}><span>{photo ? "Day 1" : "Your first photo"}</span></div>
               <div><h3>Let the mirror catch what the scale misses.</h3><p>Add photos at the start, Day 30, Day 60, and Day 90. They stay visible only to you.</p><label className="upload-button"><input type="file" accept="image/*" onChange={handlePhoto} />{photo ? "Replace preview" : "Add starting photo"}</label></div>
@@ -754,7 +752,7 @@ export default function Home() {
           </article>
 
           <article className="panel milestone-panel" id="milestones">
-            <div className="panel-header"><div><p className="eyebrow">The road ahead</p><h2>Challenge milestones</h2></div><span className="range-pill">90 days</span></div>
+            <div className="panel-header"><div><p className="eyebrow">Timeline</p><h2>Challenge milestones</h2></div><span className="range-pill">90 days</span></div>
             <div className="milestone-track">
               {milestones.map((milestone) => (
                 <div className={dayNumber >= milestone.day ? "milestone reached" : "milestone"} key={milestone.day}><span>{dayNumber >= milestone.day ? "✓" : milestone.day}</span><strong>Day {milestone.day}</strong><small>{milestone.label} · {milestone.date}</small></div>
