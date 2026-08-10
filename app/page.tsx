@@ -269,10 +269,11 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   );
 }
 
-function GoalRing({ name, value, points, total, color }: { name: GoalName; value: number; points: number; total: number; color: string }) {
+function GoalProgress({ name, value, points, total, color }: { name: GoalName; value: number; points: number; total: number; color: string }) {
   return <div className="goal-card" style={{ "--goal-color": color } as React.CSSProperties}>
-    <span className="goal-ring" style={{ "--goal-score": `${value * 3.6}deg` } as React.CSSProperties}><strong>{value}</strong><small>%</small></span>
-    <span className="goal-copy"><strong>{name}</strong><small>{Math.round(points)}/{total} impact points</small></span>
+    <div className="goal-card-top"><span className="goal-dot" /><strong>{name}</strong><span className="goal-value">{value}%</span></div>
+    <div className="goal-progress" role="progressbar" aria-label={`${name} impact`} aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${value}%` }} /></div>
+    <small>{Math.round(points)} of {total} impact points</small>
   </div>;
 }
 
@@ -671,10 +672,10 @@ export default function Home() {
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Impact by goal</strong><span>Every system stays visible</span></div>
               <div className="goal-grid">
-                <GoalRing name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ff6b43" />
-                <GoalRing name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#16b364" />
-                <GoalRing name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#48a0f8" />
-                <GoalRing name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#d28b31" />
+                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ff6b43" />
+                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#16b364" />
+                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#48a0f8" />
+                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#d28b31" />
               </div>
             </section>
             <div className="habit-list">
