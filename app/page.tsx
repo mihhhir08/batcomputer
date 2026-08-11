@@ -58,6 +58,15 @@ const DEMO_LOGS: Logs = {
   "2026-08-06": { ...EMPTY_LOG, x: true, linkedin: true, instagram: true, cleanFood: true, protein: true, strength: true, jobs: 9, steps: 10110 },
 };
 
+function UiIcon({ name }: { name: "check" | "moon" | "sun" | "pause" }) {
+  return <svg className="ui-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    {name === "check" && <path d="m3.25 8.25 3 3 6.5-6.5" />}
+    {name === "moon" && <path d="M12.8 10.1A5.5 5.5 0 0 1 5.9 3.2a5.5 5.5 0 1 0 6.9 6.9Z" />}
+    {name === "sun" && <><circle cx="8" cy="8" r="2.6" /><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.9 11.9l1.05 1.05M12.95 3.05 11.9 4.1M4.1 11.9l-1.05 1.05" /></>}
+    {name === "pause" && <><path d="M5.5 4.25v7.5M10.5 4.25v7.5" /></>}
+  </svg>;
+}
+
 function dateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -305,7 +314,6 @@ function SignIn() {
     <main className="auth-shell">
       <section className="auth-card">
         <span className="brand-mark">M</span>
-        <p className="eyebrow">Your private workspace</p>
         <h1>Build momentum.<br />Keep the evidence.</h1>
         <p>Create your free workspace and sync your 90-day transformation across devices.</p>
         <label>Email address<input type="email" value={email} placeholder="you@example.com" onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => event.key === "Enter" && sendLink()} /></label>
@@ -634,7 +642,7 @@ export default function Home() {
     <main className="app-shell">
       <section className="content" id="overview">
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><span aria-hidden="true">{theme === "light" ? "☼" : "☾"}</span>{theme === "light" ? "Light" : "Dark"}</button></div><p className="eyebrow">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Build the evidence, one day at a time.</h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><UiIcon name={theme === "light" ? "sun" : "moon"} />{theme === "light" ? "Light" : "Dark"}</button></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Build the evidence, one day at a time.</h1></div>
           <div className="challenge-summary">
             <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
@@ -646,29 +654,29 @@ export default function Home() {
         {preview && <div className="preview-banner"><span><strong>Preview data</strong> — See how your analytics will feel once you build momentum.</span><div><button onClick={() => leavePreview(todayKey)}>Start today</button><button className="ghost-start" onClick={() => leavePreview(dateKey(addDays(today, -1)))}>Started yesterday</button></div></div>}
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
-        <section className="kpi-grid" aria-label="Key metrics">
-          <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
-          <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
-          <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
-            const log = logs[dateKey(date)] ?? EMPTY_LOG;
-            return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
-          })} color="#f5a623" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
-        </section>
-
         <section className="dashboard-grid">
+          <section className="kpi-grid" aria-label="Key metrics">
+            <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
+            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
+            <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
+              const log = logs[dateKey(date)] ?? EMPTY_LOG;
+              return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
+            })} color="#f5a623" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+          </section>
+
           <article className="panel chart-panel">
-            <div className="panel-header"><div><p className="eyebrow">Performance</p><h2>Daily score trend</h2></div><div className="chart-range" role="group" aria-label="Momentum chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
+            <div className="panel-header"><h2>Daily score trend</h2><div className="chart-range" role="group" aria-label="Momentum chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
             <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
           <article className="panel daily-panel" id="today">
-            <div className="panel-header"><div><p className="eyebrow">Today</p><h2>Weighted commitments</h2></div><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
+            <div className="panel-header"><h2>Today’s weighted commitments</h2><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
             <div className={`accountability-card${distributionComplete ? " complete" : ""}`}>
-              <div className="mission-head"><div><span>Highest priority</span><strong>{distributionComplete ? "Distribution complete" : "Finish today’s distribution"}</strong></div><b>{Number(xPostsRemaining === 0) + Number(todayLog.linkedin)}/2</b></div>
+              <div className="mission-head"><strong>{distributionComplete ? "Distribution complete" : "Finish today’s distribution"}</strong><b>{Number(xPostsRemaining === 0) + Number(todayLog.linkedin)}/2</b></div>
               <p>{distributionComplete ? "The minimum is secured. Extra X posts now add XP without changing the daily score." : "These two actions create the audience that compounds every other goal."}</p>
               <div className="mission-targets">
-                <div className={xPostsRemaining === 0 ? "done" : ""}><i>{xPostsRemaining === 0 ? "✓" : "1"}</i><span><strong>X publishing</strong><small>{xPostsRemaining ? `${xPostsRemaining} posts remaining` : `${xPostsToday} posted · minimum reached`}</small></span></div>
-                <div className={todayLog.linkedin ? "done" : ""}><i>{todayLog.linkedin ? "✓" : "2"}</i><span><strong>LinkedIn</strong><small>{todayLog.linkedin ? "Published today" : "1 post remaining"}</small></span></div>
+                <div className={xPostsRemaining === 0 ? "done" : ""}><i>{xPostsRemaining === 0 ? <UiIcon name="check" /> : "1"}</i><span><strong>X publishing</strong><small>{xPostsRemaining ? `${xPostsRemaining} posts remaining` : `${xPostsToday} posted · minimum reached`}</small></span></div>
+                <div className={todayLog.linkedin ? "done" : ""}><i>{todayLog.linkedin ? <UiIcon name="check" /> : "2"}</i><span><strong>LinkedIn</strong><small>{todayLog.linkedin ? "Published today" : "1 post remaining"}</small></span></div>
               </div>
             </div>
             <section className="goal-balance" aria-label="Today’s impact by goal">
@@ -684,21 +692,21 @@ export default function Home() {
               <section className="task-group checklist-group">
                 <div className="task-group-head"><strong>Daily checks</strong><span>Mark once when complete</span></div>
                 {HABITS.filter((habit) => habit.key !== "x" || !contentVolumeActiveToday).map((habit) => habit.key === "strength" && todayLog.recovery ? (
-                  <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark">○</span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
+                  <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
                 ) : habit.key === "instagram" && !instagramActiveToday ? (
-                  <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark">○</span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
+                  <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
                 ) : (
                   <label className="habit-row" key={habit.key}>
                     <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
-                    <span className="custom-check">✓</span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
+                    <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                   </label>
                 ))}
-                {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span>○</span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
+                {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span><UiIcon name="pause" /></span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
               </section>
               <section className="task-group metric-group">
                 <div className="task-group-head"><strong>Measured targets</strong><span>Update progress during the day</span></div>
                 {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
-                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span>✓</span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
                 <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
                 <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
               </section>
@@ -706,7 +714,7 @@ export default function Home() {
           </article>
 
           <article className="panel weekly-panel" id="weekly">
-            <div className="panel-header"><div><p className="eyebrow">Comparison</p><h2>This week vs. last week</h2></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
+            <div className="panel-header"><h2>This week vs. last week</h2>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
             <div className="comparison-grid">
               {(["Audience", "Career", "Body", "Hair"] as const).map((category) => {
                 const current = categoryAverage(weekDates, category);
@@ -726,12 +734,12 @@ export default function Home() {
           </article>
 
           {reviewAvailable && <article className="panel assistant-panel">
-            <div className="assistant-heading"><div><p className="eyebrow">Weekly review</p><h2>What the data suggests</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
+            <div className="assistant-heading"><h2>Weekly review: what the data suggests</h2><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
             <div className="assistant-insights"><div className="win"><p>Strongest</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><p>Needs attention</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><p>Next move</p><strong>{hasPreviousWeek ? weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.` : `Carry your strongest ${strongestCategory.category.toLowerCase()} routine into Week 2.`}</strong></div></div>
           </article>}
 
           <article className="panel heatmap-panel">
-            <div className="panel-header"><div><p className="eyebrow">Consistency</p><h2>90-day activity</h2></div><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
+            <div className="panel-header"><h2>90-day consistency</h2><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
             <div className="heatmap-wrap">
               <div className="heatmap" role="img" aria-label="90-day consistency map">
                 {challengeDays.map((date, index) => {
@@ -746,14 +754,14 @@ export default function Home() {
           </article>
 
           <article className="panel body-panel" id="body">
-            <div className="panel-header"><div><p className="eyebrow">Body</p><h2>Weekly weight trend</h2></div><span className="range-pill">Weekly check-in</span></div>
+            <div className="panel-header"><h2>Weekly weight trend</h2><span className="range-pill">Weekly check-in</span></div>
             <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>goal <small>kg</small></strong><em>Retain strength and muscle</em></div></div>
             <WeightTrend entries={weeklyWeightEntries} />
             <div className="body-note"><span>i</span><p>Scale weight is only one signal. Use the trend with strength consistency and progress photos; the body-fat figure is a directional estimate from your starting measurements.</p></div>
           </article>
 
           <article className="panel photos-panel">
-            <div className="panel-header"><div><p className="eyebrow">Photos</p><h2>Visual progress</h2></div><span className="range-pill">Private</span></div>
+            <div className="panel-header"><h2>Visual progress</h2><span className="range-pill">Private</span></div>
             <div className="photo-content">
               <div className={photo ? "photo-preview has-photo" : "photo-preview"} style={photo ? { backgroundImage: `url(${photo})` } : undefined}><span>{photo ? "Day 1" : "Your first photo"}</span></div>
               <div><h3>Let the mirror catch what the scale misses.</h3><p>Add photos at the start, Day 30, Day 60, and Day 90. They stay visible only to you.</p><label className="upload-button"><input type="file" accept="image/*" onChange={handlePhoto} />{photo ? "Replace preview" : "Add starting photo"}</label></div>
@@ -761,15 +769,15 @@ export default function Home() {
           </article>
 
           <article className="panel milestone-panel" id="milestones">
-            <div className="panel-header"><div><p className="eyebrow">Timeline</p><h2>Challenge milestones</h2></div><span className="range-pill">90 days</span></div>
+            <div className="panel-header"><h2>Challenge milestones</h2><span className="range-pill">90 days</span></div>
             <div className="milestone-track">
               {milestones.map((milestone) => (
-                <div className={dayNumber >= milestone.day ? "milestone reached" : "milestone"} key={milestone.day}><span>{dayNumber >= milestone.day ? "✓" : milestone.day}</span><strong>Day {milestone.day}</strong><small>{milestone.label} · {milestone.date}</small></div>
+                <div className={dayNumber >= milestone.day ? "milestone reached" : "milestone"} key={milestone.day}><span>{dayNumber >= milestone.day ? <UiIcon name="check" /> : milestone.day}</span><strong>Day {milestone.day}</strong><small>{milestone.label} · {milestone.date}</small></div>
               ))}
             </div>
           </article>
           {dayNumber >= 90 && <article className="panel end-summary">
-            <div className="panel-header"><div><p className="eyebrow">Day 90 · challenge complete</p><h2>Your transformation, documented.</h2></div><span className="range-pill">Final report</span></div>
+            <div className="panel-header"><h2>Day 90: your transformation, documented</h2><span className="range-pill">Final report</span></div>
             <div className="end-summary-grid"><div><span>Overall momentum</span><strong>{challengeScore}%</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Clean-eating days</span><strong>{cleanDays}</strong></div><div><span>Strength sessions</span><strong>{strengthDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Posts</span><strong>{totalJobs} · {totalPosts}</strong></div></div>
           </article>}
         </section>
