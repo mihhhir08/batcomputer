@@ -53,7 +53,8 @@ button:focus-visible, label:has(input:focus-visible) { outline: 2px solid var(--
 .topbar-copy { min-width: 0; }
 .topbar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
 .topbar-brand > strong { font-size: 15px; letter-spacing: -.02em; }
-.brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 800; }
+.brand-mark { width: 30px; height: 30px; display: grid; place-items: center; flex: 0 0 30px; }
+.brand-mark img { width: 36px; height: 36px; max-width: none; object-fit: contain; }
 .topbar-date { margin: 0 0 9px; color: var(--muted); font-size: 12px; font-weight: 600; }
 .topbar h1 { max-width: 720px; margin: 0; font-size: clamp(30px, 4vw, 48px); line-height: 1.03; letter-spacing: -.04em; font-weight: 720; text-wrap: balance; }
 .topbar h1, .auth-card h1 { font-family: "Momentum Sans", sans-serif; }

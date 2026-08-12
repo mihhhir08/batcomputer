@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
@@ -358,7 +359,7 @@ function SignIn() {
   return (
     <main className="auth-shell">
       <section className="auth-card">
-        <span className="brand-mark">M</span>
+        <span className="brand-mark"><Image src="/momentum-logo.png" alt="" width={30} height={30} priority /></span>
         <h1>Build momentum.<br />Keep the evidence.</h1>
         <p>Create your free workspace and sync your 90-day transformation across devices.</p>
         <label>Email address<input type="email" value={email} placeholder="you@example.com" onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => event.key === "Enter" && sendLink()} /></label>
@@ -691,7 +692,7 @@ export default function Home() {
     <main className="app-shell">
       <section className="content" id="overview">
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><span className="private-mark">Private workspace</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Build the evidence.</span><em>Use the day well.</em></h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/momentum-logo.png" alt="" width={30} height={30} priority /></span><strong>Momentum</strong><span className="private-mark">Private workspace</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Build the evidence.</span><em>Use the day well.</em></h1></div>
           <div className="challenge-summary">
             <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
