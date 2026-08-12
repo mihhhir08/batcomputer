@@ -5,6 +5,14 @@ import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 type BinaryKey = "x" | "linkedin" | "instagram" | "cleanFood" | "protein" | "strength" | "scalpMassage" | "careerGrowth";
+type FocusKey = "x" | "linkedin" | "jobs" | "careerGrowth";
+type DayPlan = {
+  capacityMinutes: number;
+  approved: boolean;
+  allocations: Record<FocusKey, number>;
+  planFit?: "yes" | "tight" | "no";
+  friction?: FocusKey | "none";
+};
 type DayLog = Record<BinaryKey, boolean> & {
   jobs: number;
   steps: number;
@@ -13,6 +21,7 @@ type DayLog = Record<BinaryKey, boolean> & {
   recovery: boolean;
   weight?: number;
   waist?: number;
+  plan?: DayPlan;
 };
 
 type Logs = Record<string, DayLog>;
@@ -38,6 +47,12 @@ const EMPTY_LOG: DayLog = {
   recovery: false,
 };
 
+const DEFAULT_PLAN: DayPlan = {
+  capacityMinutes: 180,
+  approved: false,
+  allocations: { x: 35, linkedin: 25, jobs: 60, careerGrowth: 45 },
+};
+
 const HABITS: { key: BinaryKey; label: string; note: string; group: GoalName }[] = [
   { key: "x", label: "Post on X", note: "Build daily distribution", group: "Audience" },
   { key: "linkedin", label: "Post on LinkedIn", note: "Build authority and opportunity", group: "Audience" },
@@ -58,11 +73,12 @@ const DEMO_LOGS: Logs = {
   "2026-08-06": { ...EMPTY_LOG, x: true, linkedin: true, instagram: true, cleanFood: true, protein: true, strength: true, jobs: 9, steps: 10110 },
 };
 
-function UiIcon({ name }: { name: "check" | "moon" | "sun" | "pause" }) {
+function UiIcon({ name }: { name: "arrow" | "back" | "check" | "focus" | "pause" }) {
   return <svg className="ui-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    {name === "arrow" && <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" />}
+    {name === "back" && <path d="M13 8H4M7.5 4.5 4 8l3.5 3.5" />}
     {name === "check" && <path d="m3.25 8.25 3 3 6.5-6.5" />}
-    {name === "moon" && <path d="M12.8 10.1A5.5 5.5 0 0 1 5.9 3.2a5.5 5.5 0 1 0 6.9 6.9Z" />}
-    {name === "sun" && <><circle cx="8" cy="8" r="2.6" /><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.9 11.9l1.05 1.05M12.95 3.05 11.9 4.1M4.1 11.9l-1.05 1.05" /></>}
+    {name === "focus" && <><circle cx="8" cy="8" r="2.25" /><path d="M6 2H3a1 1 0 0 0-1 1v3M10 2h3a1 1 0 0 1 1 1v3M6 14H3a1 1 0 0 1-1-1v-3M10 14h3a1 1 0 0 0 1-1v-3" /></>}
     {name === "pause" && <><path d="M5.5 4.25v7.5M10.5 4.25v7.5" /></>}
   </svg>;
 }
@@ -294,6 +310,35 @@ function MetricStepper({ label, value, step, unit, complete, onChange }: { label
   );
 }
 
+const FOCUS_META: Record<FocusKey, { label: string; why: string; firstStep: string }> = {
+  x: { label: "X distribution", why: "Daily distribution compounds the audience behind every future opportunity.", firstStep: "Draft the first useful idea, publish it, then keep the cadence moving." },
+  linkedin: { label: "LinkedIn publishing", why: "One thoughtful post builds authority where career opportunities can find you.", firstStep: "Write the hook first. The rest of the post only needs to support it." },
+  jobs: { label: "Job applications", why: "Consistent applications keep the opportunity pipeline alive until the outcome changes.", firstStep: "Find the first suitable role and submit one careful application." },
+  careerGrowth: { label: "Career opportunity block", why: "Skill, project, interview, or outreach work improves the quality of future opportunities.", firstStep: "Choose one concrete output you can finish inside this block." },
+};
+
+function FocusView({ task, minutes, log, onBack, onUpdate, onBlocked }: { task: FocusKey; minutes: number; log: DayLog; onBack: () => void; onUpdate: (patch: Partial<DayLog>) => void; onBlocked: () => void }) {
+  const meta = FOCUS_META[task];
+  const complete = task === "x" ? xPostCount(log) >= 15 : task === "jobs" ? log.jobs >= 10 : Boolean(log[task]);
+  return <main className="focus-shell">
+    <section className="focus-workspace">
+      <button className="focus-back" onClick={onBack}><UiIcon name="back" />Back to today</button>
+      <div className="focus-copy">
+        <span>{minutes} planned minutes</span>
+        <h1>{meta.label}</h1>
+        <p>{meta.why}</p>
+      </div>
+      <div className="focus-next-step"><strong>Begin here</strong><p>{meta.firstStep}</p></div>
+      <div className="focus-control">
+        {task === "x" && <MetricStepper label="X posts today" value={xPostCount(log)} step={1} unit="posts" complete={complete} onChange={(xPosts) => onUpdate({ xPosts })} />}
+        {task === "jobs" && <div className="stepper focus-job-stepper"><button aria-label="Remove one application" onClick={() => onUpdate({ jobs: Math.max(0, log.jobs - 1) })}>−</button><strong>{log.jobs}</strong><button aria-label="Add one application" onClick={() => onUpdate({ jobs: log.jobs + 1 })}>+</button></div>}
+        {(task === "linkedin" || task === "careerGrowth") && <button className={complete ? "focus-complete done" : "focus-complete"} onClick={() => onUpdate({ [task]: !complete })}>{complete ? <><UiIcon name="check" />Completed</> : "Mark complete"}</button>}
+      </div>
+      <div className="focus-actions"><button onClick={onBlocked}>I’m blocked</button><button onClick={onBack}>Return to plan <UiIcon name="arrow" /></button></div>
+    </section>
+  </main>;
+}
+
 function SignIn() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -335,18 +380,11 @@ export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [activeFocus, setActiveFocus] = useState<FocusKey | null>(null);
   const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
-
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem("momentum-90-theme");
-    const initialTheme = savedTheme === "light" ? "light" : "dark";
-    document.documentElement.dataset.theme = initialTheme;
-    queueMicrotask(() => setTheme(initialTheme));
-  }, []);
 
   useEffect(() => {
     if (supabase) {
@@ -463,6 +501,14 @@ export default function Home() {
   const scalpStreak = currentStreak(logs, today, (log) => log.scalpMassage);
   const xPostsRemaining = Math.max(0, 15 - xPostsToday);
   const distributionComplete = xPostsRemaining === 0 && todayLog.linkedin;
+  const todayPlan = todayLog.plan ?? DEFAULT_PLAN;
+  const focusComplete = (key: FocusKey) => key === "x" ? xPostsToday >= 15 : key === "jobs" ? todayLog.jobs >= 10 : Boolean(todayLog[key]);
+  const focusItems = (["x", "linkedin", ...(careerActiveToday ? ["jobs" as const] : []), "careerGrowth"] as FocusKey[]).map((key) => ({ key, ...FOCUS_META[key], minutes: todayPlan.allocations[key], complete: focusComplete(key) }));
+  const plannedMinutes = focusItems.reduce((sum, item) => sum + item.minutes, 0);
+  const bufferMinutes = Math.max(0, todayPlan.capacityMinutes - plannedMinutes);
+  const planOverage = Math.max(0, plannedMinutes - todayPlan.capacityMinutes);
+  const planExecution = plannedMinutes ? Math.round((focusItems.filter((item) => item.complete).reduce((sum, item) => sum + item.minutes, 0) / plannedMinutes) * 100) : 0;
+  const mustWinKey: FocusKey = !focusComplete("x") ? "x" : !focusComplete("linkedin") ? "linkedin" : focusItems.find((item) => !item.complete)?.key ?? "careerGrowth";
   const totalJobs = Object.values(logs).reduce((sum, log) => sum + log.jobs, 0);
   const totalPosts = Object.entries(logs).reduce((sum, [logDate, log]) => sum + xPostCount(log) + Number(log.linkedin) + Number(instagramIsActive(logDate, instagramStartedOn) && log.instagram), 0);
   const weightEntries = Object.entries(logs).filter((entry): entry is [string, DayLog & { weight: number }] => typeof entry[1].weight === "number").sort(([a], [b]) => a.localeCompare(b));
@@ -494,13 +540,12 @@ export default function Home() {
     }
   }
 
-  function toggleTheme() {
-    setTheme((current) => {
-      const next = current === "light" ? "dark" : "light";
-      document.documentElement.dataset.theme = next;
-      window.localStorage.setItem("momentum-90-theme", next);
-      return next;
-    });
+  function updatePlan(patch: Partial<DayPlan>) {
+    updateToday({ plan: { ...todayPlan, ...patch } });
+  }
+
+  function updatePlanMinutes(key: FocusKey, amount: number) {
+    updatePlan({ allocations: { ...todayPlan.allocations, [key]: Math.max(15, todayPlan.allocations[key] + amount) }, approved: false });
   }
 
   async function handlePhoto(event: ChangeEvent<HTMLInputElement>) {
@@ -618,6 +663,10 @@ export default function Home() {
 
   if (isSupabaseConfigured && !authReady) return <main className="loading-shell">Preparing your private workspace…</main>;
   if (isSupabaseConfigured && !session) return <SignIn />;
+  if (activeFocus) return <FocusView task={activeFocus} minutes={todayPlan.allocations[activeFocus]} log={todayLog} onBack={() => setActiveFocus(null)} onUpdate={updateToday} onBlocked={() => {
+    setNotice(`Make it smaller: ${FOCUS_META[activeFocus].firstStep}`);
+    setActiveFocus(null);
+  }} />;
 
   const milestones = [
     { day: 1, label: "Begin" }, { day: 10, label: "Proof" }, { day: 25, label: "Rhythm" },
@@ -642,7 +691,7 @@ export default function Home() {
     <main className="app-shell">
       <section className="content" id="overview">
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><UiIcon name={theme === "light" ? "sun" : "moon"} />{theme === "light" ? "Light" : "Dark"}</button></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1>Build the evidence, one day at a time.</h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark">M</span><strong>Momentum</strong><span className="private-mark">Private workspace</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Build the evidence.</span><em>Use the day well.</em></h1></div>
           <div className="challenge-summary">
             <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
@@ -655,6 +704,30 @@ export default function Home() {
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
         <section className="dashboard-grid">
+          <article className={todayPlan.approved ? "panel plan-panel approved" : "panel plan-panel"}>
+            <div className="plan-header">
+              <div><h2>{todayPlan.approved ? "Today’s committed plan" : "Your proposed focus plan"}</h2><p>{todayPlan.approved ? `${planExecution}% of planned focus completed` : "Review the allocation, then commit to the day."}</p></div>
+              <div className="capacity-control"><span>Daily capacity</span><div><button aria-label="Reduce daily focus capacity" onClick={() => updatePlan({ capacityMinutes: Math.max(180, todayPlan.capacityMinutes - 15), approved: false })} disabled={todayPlan.capacityMinutes <= 180}>−</button><strong>{Math.floor(todayPlan.capacityMinutes / 60)}<small>h</small> {todayPlan.capacityMinutes % 60 ? <>{todayPlan.capacityMinutes % 60}<small>m</small></> : null}</strong><button aria-label="Increase daily focus capacity" onClick={() => updatePlan({ capacityMinutes: todayPlan.capacityMinutes + 15, approved: false })}>+</button></div></div>
+            </div>
+            <section className="must-win">
+              <div className="must-win-copy"><h3>{distributionComplete ? `Must win: ${FOCUS_META[mustWinKey].label}` : "Must win: complete today’s distribution"}</h3><p>{distributionComplete ? FOCUS_META[mustWinKey].why : "Reach 15 X posts and publish once on LinkedIn before lower-impact work takes over the day."}</p></div>
+              {todayPlan.approved ? <button onClick={() => setActiveFocus(mustWinKey)}><UiIcon name="focus" />Focus</button> : <span className="approval-required">Approve the plan below</span>}
+            </section>
+            <div className="plan-ledger">
+              {focusItems.map((item) => <div className={item.complete ? "plan-row complete" : "plan-row"} key={item.key}>
+                <span className="plan-status">{item.complete ? <UiIcon name="check" /> : <i />}</span>
+                <span className="plan-task"><strong>{item.label}</strong><small>{item.why}</small></span>
+                <span className="plan-duration">{item.minutes} min</span>
+                {!todayPlan.approved ? <span className="plan-adjust"><button aria-label={`Reduce time for ${item.label}`} onClick={() => updatePlanMinutes(item.key, -5)}>−</button><button aria-label={`Increase time for ${item.label}`} onClick={() => updatePlanMinutes(item.key, 5)}>+</button></span> : <button className="plan-focus" onClick={() => setActiveFocus(item.key)}>{item.complete ? "Review" : "Start"}<UiIcon name="arrow" /></button>}
+              </div>)}
+              <div className={planOverage ? "plan-row buffer over" : "plan-row buffer"}><span className="plan-status"><i /></span><span className="plan-task"><strong>{planOverage ? "Plan exceeds capacity" : "Flex buffer"}</strong><small>{planOverage ? "Reduce a block or increase today’s capacity before committing." : "Space for transitions, delays, and the unexpected."}</small></span><span className="plan-duration">{planOverage ? `+${planOverage}` : bufferMinutes} min</span></div>
+            </div>
+            <div className="plan-footer">
+              <div className="capacity-bar" role="progressbar" aria-label="Planned focus capacity" aria-valuenow={Math.min(100, Math.round((plannedMinutes / todayPlan.capacityMinutes) * 100))} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${Math.min(100, (plannedMinutes / todayPlan.capacityMinutes) * 100)}%` }} /></div>
+              {!todayPlan.approved ? <button className="commit-plan" disabled={Boolean(planOverage)} onClick={() => updatePlan({ approved: true })}>Commit to this plan <UiIcon name="arrow" /></button> : <><div className="day-review"><span>Did this plan fit?</span>{(["yes", "tight", "no"] as const).map((fit) => <button className={todayPlan.planFit === fit ? "active" : ""} key={fit} onClick={() => updatePlan({ planFit: fit })}>{fit === "yes" ? "Yes" : fit === "tight" ? "Barely" : "No"}</button>)}</div><button className="replan" onClick={() => updatePlan({ approved: false })}>Replan today</button></>}
+            </div>
+          </article>
+
           <section className="kpi-grid" aria-label="Key metrics">
             <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
             <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
@@ -671,14 +744,6 @@ export default function Home() {
 
           <article className="panel daily-panel" id="today">
             <div className="panel-header"><h2>Today’s weighted commitments</h2><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
-            <div className={`accountability-card${distributionComplete ? " complete" : ""}`}>
-              <div className="mission-head"><strong>{distributionComplete ? "Distribution complete" : "Finish today’s distribution"}</strong><b>{Number(xPostsRemaining === 0) + Number(todayLog.linkedin)}/2</b></div>
-              <p>{distributionComplete ? "The minimum is secured. Extra X posts now add XP without changing the daily score." : "These two actions create the audience that compounds every other goal."}</p>
-              <div className="mission-targets">
-                <div className={xPostsRemaining === 0 ? "done" : ""}><i>{xPostsRemaining === 0 ? <UiIcon name="check" /> : "1"}</i><span><strong>X publishing</strong><small>{xPostsRemaining ? `${xPostsRemaining} posts remaining` : `${xPostsToday} posted · minimum reached`}</small></span></div>
-                <div className={todayLog.linkedin ? "done" : ""}><i>{todayLog.linkedin ? <UiIcon name="check" /> : "2"}</i><span><strong>LinkedIn</strong><small>{todayLog.linkedin ? "Published today" : "1 post remaining"}</small></span></div>
-              </div>
-            </div>
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
@@ -689,12 +754,26 @@ export default function Home() {
               </div>
             </section>
             <div className="habit-list">
-              <section className="task-group checklist-group">
-                <div className="task-group-head"><strong>Daily checks</strong><span>Mark once when complete</span></div>
-                {HABITS.filter((habit) => habit.key !== "x" || !contentVolumeActiveToday).map((habit) => habit.key === "strength" && todayLog.recovery ? (
-                  <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
-                ) : habit.key === "instagram" && !instagramActiveToday ? (
+              <section className="task-group focus-checks">
+                <div className="task-group-head"><strong>Focus commitments</strong><span>High-impact work from the plan</span></div>
+                {HABITS.filter((habit) => ["linkedin", "careerGrowth", "instagram"].includes(habit.key)).map((habit) => habit.key === "instagram" && !instagramActiveToday ? (
                   <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
+                ) : (
+                  <label className="habit-row" key={habit.key}>
+                    <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
+                    <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
+                  </label>
+                ))}
+              </section>
+              <section className="task-group focus-metrics">
+                <div className="task-group-head"><strong>Measured focus</strong><span>Update the outcome, not the clock</span></div>
+                {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
+                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+              </section>
+              <section className="task-group maintenance-checks">
+                <div className="task-group-head"><strong>Maintenance</strong><span>Protect the routines that keep you capable</span></div>
+                {HABITS.filter((habit) => ["cleanFood", "protein", "strength", "scalpMassage"].includes(habit.key)).map((habit) => habit.key === "strength" && todayLog.recovery ? (
+                  <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
                 ) : (
                   <label className="habit-row" key={habit.key}>
                     <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
@@ -703,10 +782,8 @@ export default function Home() {
                 ))}
                 {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span><UiIcon name="pause" /></span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
               </section>
-              <section className="task-group metric-group">
-                <div className="task-group-head"><strong>Measured targets</strong><span>Update progress during the day</span></div>
-                {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
-                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+              <section className="task-group maintenance-metrics">
+                <div className="task-group-head"><strong>Daily measures</strong><span>Fast updates, separate from focus time</span></div>
                 <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
                 <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
               </section>
