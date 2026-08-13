@@ -188,7 +188,7 @@ function areaPath(points: { x: number; y: number }[], bottom: number) {
   return `${curvePath(points)} L${points.at(-1)!.x},${bottom} L${points[0].x},${bottom} Z`;
 }
 
-function MiniLine({ values, color = "#f0b35a" }: { values: number[]; color?: string }) {
+function MiniLine({ values, color = "#ffd43b" }: { values: number[]; color?: string }) {
   const points = values.map((value, index) => `${(index / Math.max(values.length - 1, 1)) * 100},${38 - (value / 100) * 34}`).join(" ");
   return (
     <svg className="mini-line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
@@ -207,7 +207,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
   const y = (value: number) => 15 + ((maximum - value) / Math.max(maximum - minimum, 1)) * 70;
   const points = entries.map(([, value], index) => `${x(index)},${y(value)}`).join(" ");
   return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
-    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#55c7ff" stopOpacity=".22" /><stop offset="1" stopColor="#55c7ff" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8bb9d0" stopOpacity=".22" /><stop offset="1" stopColor="#8bb9d0" stopOpacity="0" /></linearGradient></defs>
     <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
     <polyline key={entries.length} className="weight-line" points={points} fill="none" />
     {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
@@ -215,7 +215,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const colors = { Overall: "#f0b35a", Audience: "#55c7ff", Career: "#63d6a0" } as const;
+  const colors = { Overall: "#ffd43b", Audience: "#8bb9d0", Career: "#70d49b" } as const;
   const series = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -239,7 +239,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
         <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Overall, audience, and career daily score trends">
           <defs>
             <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors.Overall} stopOpacity=".22" /><stop offset="1" stopColor={colors.Overall} stopOpacity="0" /></linearGradient>
-            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#55c7ff" stopOpacity=".6" /><stop offset="1" stopColor="#55c7ff" stopOpacity=".08" /></linearGradient>
+            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffd43b" stopOpacity=".5" /><stop offset="1" stopColor="#ffd43b" stopOpacity=".06" /></linearGradient>
           </defs>
           {[0, 50, 100].map((value) => (
             <g key={value}>
@@ -658,11 +658,11 @@ export default function Home() {
         <section className="dashboard-grid">
           <section className="kpi-grid" aria-label="Key metrics">
             <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
-            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#55c7ff" /><p>Daily target · 10 applications</p></>}</article>
+            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#8bb9d0" /><p>Daily target · 10 applications</p></>}</article>
             <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
               const log = logs[dateKey(date)] ?? EMPTY_LOG;
               return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
-            })} color="#f0b35a" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+            })} color="#ffd43b" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
           </section>
 
           <article className="panel chart-panel">
@@ -675,10 +675,10 @@ export default function Home() {
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
-                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#55c7ff" />
-                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#63d6a0" />
-                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#4e8dff" />
-                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#f0b35a" />
+                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ffd43b" />
+                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#70d49b" />
+                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#8bb9d0" />
+                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#c7a96b" />
               </div>
             </section>
             <div className="habit-list">
@@ -725,7 +725,7 @@ export default function Home() {
                 const current = categoryAverage(weekDates, category);
                 const prior = hasPreviousWeek ? categoryAverage(previousWeekDates, category) : 0;
                 const change = current - prior;
-                const color = { Audience: "#55c7ff", Career: "#63d6a0", Body: "#4e8dff", Hair: "#f0b35a" }[category];
+                const color = { Audience: "#ffd43b", Career: "#70d49b", Body: "#8bb9d0", Hair: "#c7a96b" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
                   <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Week 1"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>

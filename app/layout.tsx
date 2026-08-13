@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en" data-theme="dark"><body><template hidden data-impeccable-direction dangerouslySetInnerHTML={{ __html: `<!--
 THESIS: Momentum is a live execution ledger, not a card gallery; action leads and analysis proves.
-OWN-WORLD: Deep midnight operational canvas, graphite rules, coral live state, blue and green data, expressive sans headlines, and mono operational numerals.
+OWN-WORLD: True-black tactical canvas, gunmetal rules, signal-yellow action and focus, desaturated steel-blue telemetry, green completion, expressive sans headlines, and mono operational numerals.
 STORY: See the remaining mission, record weighted work directly, then read trends, weekly change, body evidence, and milestones.
 FIRST VIEWPORT: Brand and challenge status lead directly into today's weighted commitments; recording completed work is the primary action.
 FORM: Mission-control ledger, fourth grounded direction, seed 8de5f1cd.
