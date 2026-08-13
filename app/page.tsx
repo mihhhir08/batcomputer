@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
@@ -19,7 +19,7 @@ type DayLog = Record<BinaryKey, boolean> & {
 
 type Logs = Record<string, DayLog>;
 type GoalName = "Audience" | "Career" | "Body" | "Hair";
-type SignalKey = BinaryKey | "xPosts" | "jobs" | "steps" | "water";
+type SignalKey = BinaryKey | "xPosts" | "jobs" | "steps" | "water" | "weight" | "waist" | "overall" | "audience" | "career" | "body" | "hair" | "xp";
 
 const START_DATE = "2026-08-07";
 const WELLNESS_START_DATE = "2026-08-08";
@@ -177,6 +177,17 @@ function currentStreak(logs: Logs, today: Date, completed: (log: DayLog) => bool
   return streak;
 }
 
+function bestStreak(logs: Logs, dates: Date[], completed: (log: DayLog) => boolean) {
+  let best = 0;
+  let current = 0;
+  dates.forEach((date) => {
+    const log = logs[dateKey(date)];
+    current = log && completed(log) ? current + 1 : 0;
+    best = Math.max(best, current);
+  });
+  return best;
+}
+
 function curvePath(points: { x: number; y: number }[]) {
   if (points.length === 1) return `M${points[0].x - 9},${points[0].y} H${points[0].x + 9}`;
   return points.slice(1).reduce((path, point, index) => {
@@ -190,7 +201,7 @@ function areaPath(points: { x: number; y: number }[], bottom: number) {
   return `${curvePath(points)} L${points.at(-1)!.x},${bottom} L${points[0].x},${bottom} Z`;
 }
 
-function MiniLine({ values, color = "#61c5ff" }: { values: number[]; color?: string }) {
+function MiniLine({ values, color = "#78ddeb" }: { values: number[]; color?: string }) {
   const points = values.map((value, index) => `${(index / Math.max(values.length - 1, 1)) * 100},${38 - (value / 100) * 34}`).join(" ");
   return (
     <svg className="mini-line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
@@ -209,7 +220,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
   const y = (value: number) => 15 + ((maximum - value) / Math.max(maximum - minimum, 1)) * 70;
   const points = entries.map(([, value], index) => `${x(index)},${y(value)}`).join(" ");
   return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
-    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#61c5ff" stopOpacity=".22" /><stop offset="1" stopColor="#61c5ff" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#78ddeb" stopOpacity=".22" /><stop offset="1" stopColor="#78ddeb" stopOpacity="0" /></linearGradient></defs>
     <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
     <polyline key={entries.length} className="weight-line" points={points} fill="none" />
     {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
@@ -217,7 +228,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, startDate, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; startDate: string; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const colors = { Overall: "#61c5ff", Audience: "#abdfff", Career: "#68b99b" } as const;
+  const colors = { Overall: "#78ddeb", Audience: "#a9dce3", Career: "#68b99b" } as const;
   const series = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -262,11 +273,13 @@ function TrendChart({ logs, dates, startDate, jobSecuredOn, instagramStartedOn }
           {dates.map((date, index) => {
             const day = Math.floor((date.getTime() - missionStart.getTime()) / 86400000) + 1;
             const log = logs[dateKey(date)];
-            if (!milestoneDays.has(day) && !log?.recovery) return null;
+            const careerEvent = jobSecuredOn === dateKey(date);
+            const instagramEvent = instagramStartedOn === dateKey(date);
+            if (!milestoneDays.has(day) && !log?.recovery && !careerEvent && !instagramEvent) return null;
             return <g key={`event-${dateKey(date)}`} className="chart-event">
               <line x1={x(index)} x2={x(index)} y1={y(100)} y2={y(0)} className="event-marker" />
-              <circle cx={x(index)} cy={log?.recovery ? y(8) : y(96)} r="3.5" className={log?.recovery ? "recovery-marker" : "milestone-marker"}>
-                <title>{log?.recovery ? "Planned recovery" : `Mission milestone · Day ${day}`}</title>
+              <circle cx={x(index)} cy={log?.recovery ? y(8) : careerEvent ? y(88) : instagramEvent ? y(82) : y(96)} r="3.5" className={log?.recovery ? "recovery-marker" : careerEvent ? "career-marker" : instagramEvent ? "activation-marker" : "milestone-marker"}>
+                <title>{log?.recovery ? "Planned recovery" : careerEvent ? "Job secured" : instagramEvent ? "Instagram activated" : `Mission milestone · Day ${day}`}</title>
               </circle>
             </g>;
           })}
@@ -305,9 +318,9 @@ function TrendChart({ logs, dates, startDate, jobSecuredOn, instagramStartedOn }
 
 function GoalProgress({ name, value, points, total, color }: { name: GoalName; value: number; points: number; total: number; color: string }) {
   return <div className="goal-card" style={{ "--goal-color": color } as React.CSSProperties}>
-    <div className="goal-card-top"><span className="goal-dot" /><strong>{name}</strong><span className="goal-value">{value}%</span></div>
+    <div className="goal-card-top"><span className="goal-dot" /><strong>{name}</strong><span className="goal-value">{Math.round(points)} / {total}</span></div>
     <div className="goal-progress" role="progressbar" aria-label={`${name} impact`} aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${value}%` }} /></div>
-    <small>{Math.round(points)} of {total} impact points</small>
+    <small>{Math.max(0, Math.round(total - points))} points remain available today</small>
   </div>;
 }
 
@@ -365,11 +378,15 @@ export default function Home() {
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
   const [selectedSignal, setSelectedSignal] = useState<SignalKey>("xPosts");
   const [inspectedDate, setInspectedDate] = useState<string | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [clock, setClock] = useState<Date | null>(null);
   const [booting, setBooting] = useState(false);
   const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const commandInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (supabase) {
@@ -397,6 +414,10 @@ export default function Home() {
       setHydrated(true);
     });
   }, []);
+
+  useEffect(() => {
+    if (commandOpen) window.requestAnimationFrame(() => commandInputRef.current?.focus());
+  }, [commandOpen]);
 
   useEffect(() => {
     if (!supabase || !session) return;
@@ -482,6 +503,24 @@ export default function Home() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [inspectedDate]);
 
+  useEffect(() => {
+    const initial = window.setTimeout(() => setClock(new Date()), 0);
+    const timer = window.setInterval(() => setClock(new Date()), 60000);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+  }, []);
+
+  useEffect(() => {
+    const handleCommandKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen((open) => !open);
+      }
+      if (event.key === "Escape") setCommandOpen(false);
+    };
+    window.addEventListener("keydown", handleCommandKey);
+    return () => window.removeEventListener("keydown", handleCommandKey);
+  }, []);
+
   const todayLog = logs[todayKey] ?? EMPTY_LOG;
   const start = new Date(`${startDate}T12:00:00Z`);
   const end = addDays(start, 89);
@@ -496,8 +535,8 @@ export default function Home() {
   const weekDates = Array.from({ length: weekDayCount }, (_, index) => addDays(challengeWeekStart, index));
   const hasPreviousWeek = challengeWeekIndex > 0;
   const previousWeekDates = hasPreviousWeek ? Array.from({ length: weekDayCount }, (_, index) => addDays(challengeWeekStart, index - 7)) : [];
-  const weekScores = weekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
-  const previousScores = previousWeekDates.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn));
+  const weekScores = weekDates.flatMap((date) => logs[dateKey(date)] ? [score(logs[dateKey(date)], dateKey(date), jobSecuredOn, instagramStartedOn)] : []);
+  const previousScores = previousWeekDates.flatMap((date) => logs[dateKey(date)] ? [score(logs[dateKey(date)], dateKey(date), jobSecuredOn, instagramStartedOn)] : []);
   const weeklyScore = average(weekScores);
   const previousScore = average(previousScores);
   const weeklyDelta = weeklyScore - previousScore;
@@ -516,13 +555,19 @@ export default function Home() {
   const weightEntries = Object.entries(logs).filter((entry): entry is [string, DayLog & { weight: number }] => typeof entry[1].weight === "number").sort(([a], [b]) => a.localeCompare(b));
   const latestWeight = weightEntries.at(-1)?.[1].weight ?? 0;
   const weightChange = latestWeight - 0;
+  const distanceToWeightGoal = latestWeight > 0 ? latestWeight - 0 : latestWeight < 0 ? 0 - latestWeight : 0;
   const weeklyWeightEntries = weightEntries.slice(-12).map(([date, log]) => [date, log.weight] as [string, number]);
-  const bodyFat = 64 - 20 * (0 / (0 * 2.54));
-  const categoryAverage = (dates: Date[], category: GoalName) => average(dates.filter((date) => category !== "Hair" || dateKey(date) >= WELLNESS_START_DATE).map((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
+  const waistEntries = Object.entries(logs).filter((entry): entry is [string, DayLog & { waist: number }] => typeof entry[1].waist === "number" && entry[1].waist > 0).sort(([a], [b]) => a.localeCompare(b));
+  const latestWaist = waistEntries.at(-1)?.[1].waist ?? 0;
+  const bodyFat = 64 - 20 * (0 / (latestWaist * 2.54));
+  const categoryAverage = (dates: Date[], category: GoalName) => average(dates.filter((date) => logs[dateKey(date)] && (category !== "Hair" || dateKey(date) >= WELLNESS_START_DATE)).map((date) => categoryScores(logs[dateKey(date)], dateKey(date), jobSecuredOn, instagramStartedOn)[category]));
   const weeklyCategories = (["Audience", "Career", "Body", "Hair"] as const).map((category) => ({ category, value: categoryAverage(weekDates, category) }));
   const strongestCategory = [...weeklyCategories].sort((a, b) => b.value - a.value)[0];
   const weakestCategory = [...weeklyCategories].sort((a, b) => a.value - b.value)[0];
   const previousCategories = hasPreviousWeek ? (["Audience", "Career", "Body", "Hair"] as const).map((category) => ({ category, value: categoryAverage(previousWeekDates, category) })) : [];
+  const categoryChanges = weeklyCategories.map((entry) => ({ category: entry.category, change: hasPreviousWeek ? entry.value - (previousCategories.find((previous) => previous.category === entry.category)?.value ?? 0) : 0 }));
+  const largestImprovement = [...categoryChanges].sort((a, b) => b.change - a.change)[0];
+  const largestDecline = [...categoryChanges].sort((a, b) => a.change - b.change)[0];
   const previousWeakestCategory = hasPreviousWeek ? [...previousCategories].sort((a, b) => a.value - b.value)[0] : null;
   const correctionMovement = previousWeakestCategory ? categoryAverage(weekDates, previousWeakestCategory.category) - previousWeakestCategory.value : 0;
   const reviewAvailable = dayNumber >= 7;
@@ -600,6 +645,7 @@ export default function Home() {
   }
 
   function updateJobOutcome(date: string | null) {
+    if (date && !window.confirm("Mark the job as secured? Applications will be retired from future mission days while all historical records and scores remain unchanged.")) return;
     setJobSecuredOn(date);
     if (date) window.localStorage.setItem("momentum-90-job-secured", date);
     else window.localStorage.removeItem("momentum-90-job-secured");
@@ -614,6 +660,7 @@ export default function Home() {
   }
 
   function startInstagram() {
+    if (!window.confirm("Activate Instagram from today? Earlier Audience scores will remain unchanged; future days will assign 10 points to LinkedIn and 5 to Instagram.")) return;
     setInstagramStartedOn(todayKey);
     window.localStorage.setItem("momentum-90-instagram-started", todayKey);
     if (supabase && session) {
@@ -624,6 +671,26 @@ export default function Home() {
       });
     }
     setNotice("Instagram is active from today. Earlier scores stay unchanged.");
+  }
+
+  function runCommand(command: string) {
+    const normalized = command.trim().toLowerCase();
+    const weightMatch = normalized.match(/^log\s+(\d+(?:\.\d+)?)\s*kg$/);
+    const dateMatch = normalized.match(/^open\s+(\d{4}-\d{2}-\d{2})$/);
+    if (weightMatch) updateToday({ weight: Number(weightMatch[1]) });
+    else if (dateMatch) setInspectedDate(dateMatch[1]);
+    else if (normalized.includes("weakest")) document.querySelector("#weekly")?.scrollIntoView();
+    else if (normalized.includes("close today")) updateToday({ closedAt: new Date().toISOString() });
+    else if (normalized.includes("audience trend")) { setSelectedSignal("audience"); document.querySelector("#evidence")?.scrollIntoView(); }
+    else if (normalized.includes("compare") || normalized.includes("weekly analysis") || normalized.includes("improved")) document.querySelector("#weekly")?.scrollIntoView();
+    else if (normalized.includes("body")) document.querySelector("#body")?.scrollIntoView();
+    else if (normalized.includes("backup") || normalized.includes("system")) document.querySelector("#system")?.scrollIntoView();
+    else if (normalized.includes("recovery")) setNotice(`${recoveryDays} planned recovery ${recoveryDays === 1 ? "day" : "days"} recorded.`);
+    else if (normalized.includes("application")) setNotice(`${weekDates.reduce((sum, date) => sum + (logs[dateKey(date)]?.jobs ?? 0), 0)} applications recorded this week.`);
+    else if (normalized.includes("instagram")) startInstagram();
+    else setNotice("Command not recognized. Choose a listed command or use “log 82 kg” / “open 2026-08-12”.");
+    setCommandOpen(false);
+    setCommandQuery("");
   }
 
   function downloadBackup() {
@@ -688,11 +755,18 @@ export default function Home() {
   ].map((milestone) => ({ ...milestone, date: addDays(start, milestone.day - 1).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }) }));
   const challengeDays = Array.from({ length: 90 }, (_, index) => addDays(start, index));
   const elapsedChallengeDays = challengeDays.slice(0, dayNumber);
-  const challengeScore = average(elapsedChallengeDays.map((date) => score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)));
+  const recordedChallengeDays = elapsedChallengeDays.filter((date) => Boolean(logs[dateKey(date)]));
+  const challengeScore = average(recordedChallengeDays.map((date) => score(logs[dateKey(date)], dateKey(date), jobSecuredOn, instagramStartedOn)));
   const cleanDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.cleanFood).length;
   const strengthDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.strength).length;
-  const averageSteps = average(elapsedChallengeDays.map((date) => logs[dateKey(date)]?.steps ?? 0));
-  const challengeXp = elapsedChallengeDays.reduce((total, date) => {
+  const recoveryDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.recovery).length;
+  const proteinDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.protein).length;
+  const careerGrowthDays = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.careerGrowth).length;
+  const linkedInPosts = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.linkedin).length;
+  const instagramPosts = elapsedChallengeDays.filter((date) => logs[dateKey(date)]?.instagram && instagramIsActive(dateKey(date), instagramStartedOn)).length;
+  const totalXPosts = elapsedChallengeDays.reduce((sum, date) => sum + xPostCount(logs[dateKey(date)] ?? EMPTY_LOG), 0);
+  const averageSteps = average(recordedChallengeDays.map((date) => logs[dateKey(date)].steps));
+  const challengeXp = recordedChallengeDays.reduce((total, date) => {
     const logDate = dateKey(date);
     const log = logs[logDate] ?? EMPTY_LOG;
     const extraXPosts = logDate >= CONTENT_VOLUME_START_DATE ? Math.max(0, xPostCount(log) - 15) : 0;
@@ -700,6 +774,25 @@ export default function Home() {
   }, 0);
   const level = Math.floor(challengeXp / 1000) + 1;
   const levelXp = challengeXp % 1000;
+  const nextLevelXp = 1000 - levelXp;
+  const dossierCategories = (["Audience", "Career", "Body", "Hair"] as const).map((category) => ({ category, value: categoryAverage(recordedChallengeDays, category) }));
+  const weekEvidence = Array.from({ length: Math.ceil(dayNumber / 7) }, (_, weekIndex) => {
+    const dates = Array.from({ length: 7 }, (_, index) => addDays(start, weekIndex * 7 + index)).filter((date) => date <= today && Boolean(logs[dateKey(date)]));
+    return { week: weekIndex + 1, value: average(dates.map((date) => score(logs[dateKey(date)], dateKey(date), jobSecuredOn, instagramStartedOn))) };
+  }).filter((week) => week.value > 0);
+  const bestWeek = [...weekEvidence].sort((a, b) => b.value - a.value)[0];
+  const weakestWeek = [...weekEvidence].sort((a, b) => a.value - b.value)[0];
+  const startingRfm = 64 - 20 * (0 / (0 * 2.54));
+  const orderedEvidence = Object.entries(logs).filter(([logDate]) => logDate >= startDate).sort(([a], [b]) => a.localeCompare(b));
+  const firstHundred = orderedEvidence.find(([logDate, log]) => score(log, logDate, jobSecuredOn, instagramStartedOn) === 100)?.[0];
+  const firstAudiencePerfect = orderedEvidence.find(([logDate, log]) => categoryScores(log, logDate, jobSecuredOn, instagramStartedOn).Audience === 100)?.[0];
+  const operationalMilestones = [
+    { label: "First perfect Audience day", value: firstAudiencePerfect ?? "Awaiting evidence", reached: Boolean(firstAudiencePerfect) },
+    { label: "First 100 score", value: firstHundred ?? "Awaiting evidence", reached: Boolean(firstHundred) },
+    { label: "First 1,000 XP", value: challengeXp >= 1000 ? `Level ${level}` : `${challengeXp.toLocaleString("en-CA")} / 1,000 XP`, reached: challengeXp >= 1000 },
+    { label: "Job secured", value: jobSecuredOn ?? "Career mission active", reached: Boolean(jobSecuredOn) },
+    { label: "Instagram activated", value: instagramStartedOn ?? "Not active", reached: Boolean(instagramStartedOn) },
+  ];
   const signalMeta: Record<SignalKey, { label: string; target: string; group: GoalName; complete: (log: DayLog) => boolean; value: (log: DayLog) => string }> = {
     x: { label: "Post on X", target: "Daily", group: "Audience", complete: (log) => log.x, value: (log) => log.x ? "Complete" : "Open" },
     linkedin: { label: "LinkedIn post", target: "1 daily", group: "Audience", complete: (log) => log.linkedin, value: (log) => log.linkedin ? "Complete" : "Open" },
@@ -713,11 +806,22 @@ export default function Home() {
     jobs: { label: "Job applications", target: "10 daily", group: "Career", complete: (log) => log.jobs >= 10, value: (log) => `${log.jobs} sent` },
     steps: { label: "Daily steps", target: "10,000", group: "Body", complete: (log) => log.steps >= 10000, value: (log) => log.steps.toLocaleString("en-CA") },
     water: { label: "Water intake", target: "3 L", group: "Body", complete: (log) => (log.water ?? 0) >= 3, value: (log) => `${log.water ?? 0} L` },
+    weight: { label: "Weight", target: "goal band", group: "Body", complete: (log) => typeof log.weight === "number", value: (log) => typeof log.weight === "number" ? `${log.weight.toFixed(1)} kg` : "No entry" },
+    waist: { label: "Waist", target: "Directional trend", group: "Body", complete: (log) => typeof log.waist === "number", value: (log) => typeof log.waist === "number" ? `${log.waist.toFixed(1)} in` : "No entry" },
+    overall: { label: "Overall score", target: "70–100", group: "Audience", complete: (log) => score(log, todayKey, jobSecuredOn, instagramStartedOn) >= 70, value: (log) => `${score(log, todayKey, jobSecuredOn, instagramStartedOn)}%` },
+    audience: { label: "Audience score", target: "35 points", group: "Audience", complete: (log) => categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Audience >= 70, value: (log) => `${categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Audience}%` },
+    career: { label: "Career score", target: "25 points", group: "Career", complete: (log) => categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Career >= 70, value: (log) => `${categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Career}%` },
+    body: { label: "Body score", target: "30 points", group: "Body", complete: (log) => categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Body >= 70, value: (log) => `${categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Body}%` },
+    hair: { label: "Hair score", target: "10 points", group: "Hair", complete: (log) => log.scalpMassage, value: (log) => `${categoryScores(log, todayKey, jobSecuredOn, instagramStartedOn).Hair}%` },
+    xp: { label: "Mission XP", target: `${nextLevelXp} to next level`, group: "Audience", complete: () => false, value: () => challengeXp.toLocaleString("en-CA") },
   };
   const activeSignal = signalMeta[selectedSignal];
   const signalDates = Array.from({ length: Math.min(7, dayNumber) }, (_, index) => addDays(today, index - Math.min(7, dayNumber) + 1));
   const signalStreak = currentStreak(logs, today, activeSignal.complete);
+  const signalBestStreak = bestStreak(logs, elapsedChallengeDays, activeSignal.complete);
   const signalCompletedDays = elapsedChallengeDays.filter((date) => activeSignal.complete(logs[dateKey(date)] ?? EMPTY_LOG)).length;
+  const signalEvidence = signalDates.flatMap((date) => logs[dateKey(date)] ? [logs[dateKey(date)]] : []);
+  const signalSevenDayRate = signalEvidence.length ? Math.round((signalEvidence.filter(activeSignal.complete).length / signalEvidence.length) * 100) : 0;
   const inspectedLog = inspectedDate ? logs[inspectedDate] : undefined;
   const inspectedDateObject = inspectedDate ? new Date(`${inspectedDate}T12:00:00Z`) : null;
   const inspectedDay = inspectedDateObject ? Math.floor((inspectedDateObject.getTime() - start.getTime()) / 86400000) + 1 : 0;
@@ -752,15 +856,20 @@ export default function Home() {
         </div>
         <button type="button" onClick={() => setBooting(false)}>Skip diagnostic</button>
       </section>}
+      <nav className="command-rail" aria-label="BATCOMPUTER command sections">
+        {[['01','COMMAND','overview'],['02','TODAY','today'],['03','EVIDENCE','evidence'],['04','SIGNALS','signals'],['05','WEEKLY','weekly'],['06','BODY','body'],['07','MILESTONES','milestones'],['08','DOSSIER','dossier'],['09','SYSTEM','system']].map(([number, label, target]) => <a key={number} href={`#${target}`}><span>{number}</span>{label}</a>)}
+        <button type="button" onClick={() => setCommandOpen(true)}><span>K</span>COMMAND</button>
+      </nav>
       <section className="content" id="overview">
-        <div className="screen-chrome" aria-hidden="true"><span>WAYNE / OPERATIONS NODE</span><i /><em>GOTHAM UPLINK · 43.6532 N</em></div>
+        <div className="screen-chrome"><span>BATCOMPUTER // ONLINE</span><i /><em>DAY STATUS // {todayLog.closedAt ? "CLOSED" : "OPEN"}</em><b>{clock ? clock.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Toronto" }) : "--:--"} ET</b></div>
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span><strong>BATCOMPUTER</strong><span className="private-mark">Cave terminal · Private</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Mission control.</span><em>Evidence. Discipline. Course correction.</em></h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span><strong>BATCOMPUTER</strong><span className="private-mark">Cave terminal · Private</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>{daysRemaining} days remaining.</span><em>Four operational fronts. One transformation mission.</em></h1></div>
           <div className="challenge-summary">
             <div className="challenge-summary-head"><span>Active mission · 90 days</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
-            <div className="xp-row"><span>Level {level}</span><i><b style={{ width: `${levelXp / 10}%` }} /></i><strong>{levelXp.toLocaleString("en-CA")} XP</strong></div>
-            <div className="challenge-summary-foot"><span>Finish · {end.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>{session && <button onClick={() => supabase?.auth.signOut()}>Sign out</button>}</div>
+            <div className="mission-window-axis"><span>Start · Aug 7</span><span>Current · Day {dayNumber}</span><span>Final dossier · Nov 4</span></div>
+            <div className="xp-row"><span>Level {level.toString().padStart(2, "0")}</span><i><b style={{ width: `${levelXp / 10}%` }} /></i><strong>{challengeXp.toLocaleString("en-CA")} / {(level * 1000).toLocaleString("en-CA")} XP</strong></div>
+            <div className="challenge-summary-foot"><span>Finish · {end.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })} · Next level +{nextLevelXp}</span>{session && <button onClick={() => supabase?.auth.signOut()}>Sign out</button>}</div>
           </div>
         </header>
 
@@ -770,29 +879,29 @@ export default function Home() {
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
         <section className="dashboard-grid">
-          <section className="kpi-grid" aria-label="Key metrics">
+          <section className="kpi-grid" id="signals" aria-label="Key metrics">
             <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{weekLoggedCount} of {weekDayCount} days contain records{hasPreviousWeek ? ` · Previous week ${previousScore}` : ""}</p></article>
-            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#abdfff" /><p>Daily target · 10 applications</p></>}</article>
+            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#a9dce3" /><p>Daily target · 10 applications</p></>}</article>
             <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
               const log = logs[dateKey(date)] ?? EMPTY_LOG;
               return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
-            })} color="#61c5ff" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+            })} color="#78ddeb" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
             <article className="signal-context" aria-live="polite">
-              <div className="signal-context-head"><span>Selected signal</span><em>{activeSignal.group}</em></div>
+              <div className="signal-context-head"><label>Signal inspector<select aria-label="Select signal" value={selectedSignal} onChange={(event) => setSelectedSignal(event.target.value as SignalKey)}>{Object.entries(signalMeta).map(([key, signal]) => <option key={key} value={key}>{signal.label}</option>)}</select></label><em>{activeSignal.group}</em></div>
               <strong>{activeSignal.label}</strong>
               <div className="signal-reading"><span>{activeSignal.value(todayLog)}</span><small>Target · {activeSignal.target}</small></div>
               <div className="signal-history" aria-label={`${activeSignal.label} seven-day history`}>
                 {signalDates.map((date) => {
-                  const log = logs[dateKey(date)] ?? EMPTY_LOG;
-                  return <i key={dateKey(date)} className={activeSignal.complete(log) ? "complete" : ""} title={`${dateKey(date)} · ${activeSignal.value(log)}`} />;
+                  const log = logs[dateKey(date)];
+                  return <i key={dateKey(date)} className={!log ? "unknown" : activeSignal.complete(log) ? "complete" : ""} title={`${dateKey(date)} · ${log ? activeSignal.value(log) : "Unknown / unlogged"}`} />;
                 })}
               </div>
-              <div className="signal-proof"><span><b>{signalStreak}</b> day streak</span><span><b>{signalCompletedDays}</b> mission days</span></div>
-              <p>Select any task in the mission queue to inspect its evidence here.</p>
+              <div className="signal-proof signal-stats"><span><b>{signalStreak}</b> current streak</span><span><b>{signalBestStreak}</b> best streak</span><span><b>{signalSevenDayRate}%</b> 7-day rate</span><span><b>{signalCompletedDays}</b> mission days</span></div>
+              <p>{signalEvidence.length} actual records in the last seven days. Empty positions are unknown, not failed.</p>
             </article>
           </section>
 
-          <article className="panel chart-panel" data-sector="TRAJECTORY / LIVE ANALYSIS">
+          <article className="panel chart-panel" id="evidence" data-sector="TRAJECTORY / LIVE ANALYSIS">
             <div className="panel-header"><h2>Mission telemetry</h2><div className="chart-range" role="group" aria-label="Mission chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
             <TrendChart logs={logs} dates={chartDates} startDate={startDate} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
@@ -802,7 +911,7 @@ export default function Home() {
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
-                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#61c5ff" />
+                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#78ddeb" />
                 <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#68b99b" />
                 <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#82b6d3" />
                 <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#718d9c" />
@@ -856,7 +965,7 @@ export default function Home() {
                 const current = categoryAverage(weekDates, category);
                 const prior = hasPreviousWeek ? categoryAverage(previousWeekDates, category) : 0;
                 const change = current - prior;
-                const color = { Audience: "#61c5ff", Career: "#68b99b", Body: "#82b6d3", Hair: "#718d9c" }[category];
+                const color = { Audience: "#78ddeb", Career: "#68b99b", Body: "#82b6d3", Hair: "#718d9c" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
                   <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Week 1"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
@@ -867,12 +976,13 @@ export default function Home() {
                 </section>;
               })}
             </div>
+            <div className="variance-summary"><div><span>Strongest signal</span><strong>{strongestCategory.category}</strong><em>{strongestCategory.value}%</em></div><div><span>Weakest signal</span><strong>{weakestCategory.category}</strong><em>{weakestCategory.value}%</em></div><div><span>Largest improvement</span><strong>{hasPreviousWeek && largestImprovement.change >= 3 ? largestImprovement.category : "No material change"}</strong><em>{hasPreviousWeek && largestImprovement.change >= 3 ? `+${largestImprovement.change}%` : "Noise filtered"}</em></div><div><span>Largest decline</span><strong>{hasPreviousWeek && largestDecline.change <= -3 ? largestDecline.category : "No material change"}</strong><em>{hasPreviousWeek && largestDecline.change <= -3 ? `${largestDecline.change}%` : "Noise filtered"}</em></div></div>
           </article>
 
           {reviewAvailable && <article className="panel assistant-panel case-file" data-sector="ANALYSIS / CORRECTION PROTOCOL">
             <div className="assistant-heading"><div><span className="case-id">CASE FILE / WEEK {challengeWeekIndex + 1}</span><h2>Alfred protocol · Course correction</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
-            <div className="assistant-insights"><div className="win"><p>01 / Observation</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>02 / Deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>03 / Directive</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
-            {previousWeakestCategory && <div className="case-outcome"><span>Correction check</span><strong>{previousWeakestCategory.category} moved {correctionMovement > 0 ? "+" : ""}{correctionMovement} points after being last week’s weakest system.</strong><em>{correctionMovement > 0 ? "Response detected" : correctionMovement < 0 ? "Directive needs adjustment" : "No movement yet"}</em></div>}
+            <div className="assistant-insights"><div className="win"><p>What went well</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>Weakest or declining signal</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>Course correction</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div><div className="follow"><p>Follow up</p><strong>{previousWeakestCategory ? `${previousWeakestCategory.category} moved ${correctionMovement > 0 ? "+" : ""}${correctionMovement} points after last week’s directive.` : "Awaiting the next weekly review to measure the correction."}</strong></div></div>
+            {previousWeakestCategory && <div className="case-outcome"><span>Correction status</span><strong>{correctionMovement > 0 ? "Response detected" : correctionMovement < 0 ? "Directive needs adjustment" : "No material movement yet"}</strong><em>Evidence only</em></div>}
           </article>}
 
           <article className="panel heatmap-panel" data-sector="ARCHIVE / 90-DAY EVIDENCE">
@@ -886,18 +996,20 @@ export default function Home() {
                   const future = date.getTime() > today.getTime();
                   const intensity = future ? "future" : value >= 75 ? "high" : value >= 40 ? "mid" : value > 0 ? "low" : "empty";
                   const recordState = future ? "future" : !log ? "unlogged" : log.closedAt ? "closed" : "open";
-                  return <button type="button" key={logDate} className={`heat-cell ${intensity} record-${recordState}`} aria-label={`Inspect Day ${index + 1}, ${recordState}, ${value}%`} aria-pressed={inspectedDate === logDate} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}% · ${recordState}`} onClick={() => setInspectedDate(logDate)} />;
+                  const milestone = [1, 10, 25, 45, 60, 75, 90].includes(index + 1);
+                  const marker = log?.recovery ? "R" : milestone ? "M" : recordState === "closed" ? "C" : recordState === "open" ? "O" : "";
+                  return <button type="button" key={logDate} className={`heat-cell ${intensity} record-${recordState}${log?.recovery ? " record-recovery" : ""}${milestone ? " record-milestone" : ""}`} aria-label={`Inspect Day ${index + 1}, ${log?.recovery ? "recovery, " : milestone ? "milestone, " : ""}${recordState}, ${value}%`} aria-pressed={inspectedDate === logDate} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}% · ${recordState}`} onClick={() => setInspectedDate(logDate)}><span aria-hidden="true">{marker}</span></button>;
                 })}
               </div>
-              <div className="heatmap-legend"><span>Score</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Maximum</span><b /><span className="record-key open">Open</span><span className="record-key closed">Closed</span><span className="record-key unlogged">Unlogged</span></div>
+              <div className="heatmap-legend"><span>Score</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Maximum</span><b /><span className="record-key open">Open</span><span className="record-key closed">Closed</span><span className="record-key unlogged">Unlogged</span><span className="record-key recovery">R Recovery</span><span className="record-key milestone">M Milestone</span></div>
             </div>
           </article>
 
           <article className="panel body-panel" id="body" data-sector="BIOMETRICS / BODY TELEMETRY">
             <div className="panel-header"><h2>Body telemetry</h2><span className="range-pill">Weekly check-in</span></div>
-            <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>goal <small>kg</small></strong><em>Retain strength and muscle</em></div></div>
+            <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>Distance to target</span><strong>{distanceToWeightGoal.toFixed(1)}<small> kg</small></strong><em>Target range · goal band</em></div><div><span>Occasional waist entry</span><strong className="editable-metric"><input aria-label="Latest waist in inches" type="number" min="20" max="80" step="0.1" value={latestWaist} onChange={(event) => updateToday({ waist: Number(event.target.value) })} /><small>in</small></strong><em>{waistEntries.length} recorded measurements</em></div><div><span>Directional RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Height fixed · height cm</em></div><div><span>Strength frequency</span><strong>{strengthDays}<small> sessions</small></strong><em>{recoveryDays} planned recovery days</em></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong><em>Across recorded days</em></div><div><span>Nutrition consistency</span><strong>{cleanDays}<small> clean</small></strong><em>{proteinDays} protein days</em></div></div>
             <WeightTrend entries={weeklyWeightEntries} />
-            <div className="body-note"><span>i</span><p>Scale weight is only one signal. Use the trend with strength consistency and progress photos; the body-fat figure is a directional estimate from your starting measurements.</p></div>
+            <div className="body-note"><span>i</span><p>RFM = 64 − 20 × (height cm ÷ waist in cm). This is a directional estimate only, not a clinical body-fat measurement. Weekly weight, occasional waist, strength consistency and progress photos should be interpreted together.</p></div>
           </article>
 
           <article className="panel photos-panel" data-sector="VISUAL / EVIDENCE ARCHIVE">
@@ -915,12 +1027,21 @@ export default function Home() {
                 <div className={dayNumber >= milestone.day ? "milestone reached" : "milestone"} key={milestone.day}><span>{dayNumber >= milestone.day ? <UiIcon name="check" /> : milestone.day}</span><strong>Day {milestone.day}</strong><small>{milestone.label} · {milestone.date}</small></div>
               ))}
             </div>
+            <div className="operational-milestones">{operationalMilestones.map((milestone) => <div className={milestone.reached ? "reached" : ""} key={milestone.label}><span>{milestone.reached ? "VERIFIED" : "PENDING"}</span><strong>{milestone.label}</strong><small>{milestone.value}</small></div>)}</div>
           </article>
-          {dayNumber >= 90 && <article className="panel end-summary">
-            <div className="panel-header"><h2>Day 90 · Mission dossier</h2><span className="range-pill">Final report</span></div>
-            <div className="end-summary-grid"><div><span>Overall score</span><strong>{challengeScore}%</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Clean-eating days</span><strong>{cleanDays}</strong></div><div><span>Strength sessions</span><strong>{strengthDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Posts</span><strong>{totalJobs} · {totalPosts}</strong></div></div>
-          </article>}
+          <article className="panel end-summary" id="dossier" data-sector="DOSSIER / OPERATION RECORD">
+            <div className="panel-header"><div><h2>Mission dossier</h2><span className="data-confidence">Evidence captured through mission day {dayNumber}</span></div><span className="range-pill">{dayNumber >= 90 ? "Final report" : `Unlocks in ${daysRemaining} days`}</span></div>
+            <div className="end-summary-grid"><div><span>Overall average</span><strong>{challengeScore}%</strong></div><div><span>Total XP · Level</span><strong>{challengeXp.toLocaleString("en-CA")} · {level}</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Waist · RFM change</span><strong>{latestWaist - 0 > 0 ? "+" : ""}{(latestWaist - 0).toFixed(1)} in · {bodyFat - startingRfm > 0 ? "+" : ""}{(bodyFat - startingRfm).toFixed(1)}%</strong></div><div><span>Clean · Protein</span><strong>{cleanDays} · {proteinDays}</strong></div><div><span>Strength · Recovery</span><strong>{strengthDays} · {recoveryDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Career blocks</span><strong>{totalJobs} · {careerGrowthDays}</strong></div><div><span>X · LinkedIn · Instagram</span><strong>{totalXPosts} · {linkedInPosts} · {instagramPosts}</strong></div><div><span>Audience · Career</span><strong>{dossierCategories[0].value}% · {dossierCategories[1].value}%</strong></div><div><span>Body · Hair</span><strong>{dossierCategories[2].value}% · {dossierCategories[3].value}%</strong></div><div><span>Best · Weakest week</span><strong>{bestWeek ? `W${bestWeek.week} ${bestWeek.value}%` : "Unknown"} · {weakestWeek ? `W${weakestWeek.week} ${weakestWeek.value}%` : "Unknown"}</strong></div><div><span>Course corrections</span><strong>{Math.floor(dayNumber / 7)} reviewed · {correctionMovement > 0 ? "Response detected" : "Pending evidence"}</strong></div><div><span>Milestone states</span><strong>{jobSecuredOn ? "Job secured" : "Career active"} · {instagramStartedOn ? "Instagram active" : "Instagram pending"}</strong></div><div><span>Operation state</span><strong>{dayNumber >= 90 ? "Complete" : "In progress"}</strong></div></div>
+          </article>
         </section>
+        {commandOpen && <div className="command-layer" role="dialog" aria-modal="true" aria-labelledby="command-title">
+          <section className="command-console">
+            <div className="command-head"><div><span>BATCOMPUTER // COMMAND</span><h2 id="command-title">Isolate a signal or execute an operation.</h2></div><button type="button" onClick={() => setCommandOpen(false)} aria-label="Close command interface">×</button></div>
+            <form onSubmit={(event) => { event.preventDefault(); runCommand(commandQuery); }}><span>&gt;</span><input ref={commandInputRef} value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} aria-label="Command" placeholder="Type a command…" /><kbd>ENTER</kbd></form>
+            <div className="command-list">{["Show today’s weakest signal","Close today","How many applications this week?","Show Audience trend","Compare this week with last week","Open Body telemetry","Show recovery days","Generate weekly analysis","Show backup status"].filter((command) => command.toLowerCase().includes(commandQuery.toLowerCase())).map((command) => <button type="button" key={command} onClick={() => runCommand(command)}><span>{command}</span><em>RUN</em></button>)}</div>
+            <p>Direct syntax: <code>log 82 kg</code> or <code>open 2026-08-12</code></p>
+          </section>
+        </div>}
         {inspectedDate && inspectedDateObject && <div className="record-dialog-layer">
           <section className="record-dialog" role="dialog" aria-modal="true" aria-labelledby="record-dialog-title">
             <div className="record-dialog-head">
@@ -935,7 +1056,7 @@ export default function Home() {
             <p>{inspectedStatus === "Not logged" ? "This day is absent from the evidence record. It is not automatically treated as an intentional failure." : inspectedLog?.closedAt ? "This result was intentionally closed and can be distinguished from missing data." : inspectedDate < todayKey ? "This day contains evidence but was never intentionally closed." : "Continue logging today, then close the record when you are finished."}</p>
           </section>
         </div>}
-        <footer><span>BATCOMPUTER · Private operations terminal</span><div className="footer-data"><span className={`sync-state ${syncState}`}><i />{syncState === "saving" ? "Saving to cloud…" : syncState === "saved" ? `Cloud saved${lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : ""}` : syncState === "error" ? "Cloud sync needs attention" : "Saved in this browser"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
+        <footer id="system"><span>BATCOMPUTER · Private operations terminal</span><div className="footer-data"><span className={`sync-state ${syncState}`}><i />{syncState === "saving" ? "CLOUD // SYNCING" : syncState === "saved" ? `CLOUD // SYNCED${lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : ""}` : syncState === "error" ? "CLOUD // SYNC ERROR · LOCAL FALLBACK ARMED" : "LOCAL ONLY // FALLBACK ARMED"}</span><span>BACKUP // V1</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
       </section>
     </main>
   );

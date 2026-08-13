@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
   <title id="title">BATCOMPUTER icon</title>
   <path fill="#03070A" d="M20 0h120l20 20v120l-20 20H20L0 140V20L20 0Z"/>
-  <path fill="none" stroke="#61C5FF" stroke-width="5" stroke-linejoin="miter" d="M18 55 51 67 64 48l16 23 16-23 13 19 33-12-20 32-25-3-17 28-17-28-25 3-20-32Z"/>
-  <path fill="#61C5FF" d="M77 65h6v40h-6zM18 55l20 32-7-25 20 5-33-12Zm124 0-20 32 7-25-20 5 33-12Z"/>
+  <path fill="none" stroke="#78DDEB" stroke-width="5" stroke-linejoin="miter" d="M18 55 51 67 64 48l16 23 16-23 13 19 33-12-20 32-25-3-17 28-17-28-25 3-20-32Z"/>
+  <path fill="#78DDEB" d="M77 65h6v40h-6zM18 55l20 32-7-25 20 5-33-12Zm124 0-20 32 7-25-20 5 33-12Z"/>
 </svg>
