@@ -312,9 +312,9 @@ function SignIn() {
   return (
     <main className="auth-shell">
       <section className="auth-card">
-        <span className="brand-mark"><Image src="/momentum-logo.png" alt="" width={30} height={30} priority /></span>
-        <h1>Build momentum.<br />Keep the evidence.</h1>
-        <p>Create your free workspace and sync your 90-day transformation across devices.</p>
+        <span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span>
+        <h1>Access the Batcomputer.<br />Keep the evidence.</h1>
+        <p>Enter your private mission terminal and sync the 90-day operation across devices.</p>
         <label>Email address<input type="email" value={email} placeholder="you@example.com" onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => event.key === "Enter" && sendLink()} /></label>
         <button onClick={sendLink} disabled={sending || !email}>{sending ? "Sending…" : "Email me a sign-in link"}</button>
         {message && <div className="auth-message" role="status">{message}</div>}
@@ -479,7 +479,7 @@ export default function Home() {
   const evidenceSummary = strongestProofDays > 0
     ? `${strongestCategory.category} cleared 70% on ${strongestProofDays} of ${weekDayCount} challenge days.`
     : `${strongestCategory.category} leads at ${strongestCategory.value}%, but no system has cleared 70% yet.`;
-  const deviationSummary = `${weakestCategory.category} averaged ${weakestCategory.value}% and cleared 70% on ${weakestProofDays} of ${weekDayCount} days${hasPreviousWeek ? `; overall momentum is ${weeklyDelta >= 0 ? "up" : "down"} ${Math.abs(weeklyDelta)}%` : ""}.`;
+  const deviationSummary = `${weakestCategory.category} averaged ${weakestCategory.value}% and cleared 70% on ${weakestProofDays} of ${weekDayCount} days${hasPreviousWeek ? `; overall score is ${weeklyDelta >= 0 ? "up" : "down"} ${Math.abs(weeklyDelta)}%` : ""}.`;
   const correctionByCategory: Record<GoalName, string> = {
     Audience: "Tomorrow, secure 15 X posts and one LinkedIn post before lower-impact work.",
     Career: careerActiveToday ? "Tomorrow, complete 10 applications or the career opportunity block before ending the day." : "Protect one career opportunity block tomorrow: skill, project, interview prep, or outreach.",
@@ -574,7 +574,7 @@ export default function Home() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `momentum-90-backup-${todayKey}.json`;
+    link.download = `batcomputer-backup-${todayKey}.json`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
     setNotice("A versioned backup of your challenge analytics was downloaded.");
@@ -622,7 +622,7 @@ export default function Home() {
   if (isSupabaseConfigured && !session) return <SignIn />;
   const milestones = [
     { day: 1, label: "Begin" }, { day: 10, label: "Proof" }, { day: 25, label: "Rhythm" },
-    { day: 45, label: "Halfway" }, { day: 60, label: "Identity" }, { day: 75, label: "Finish mode" }, { day: 90, label: "Transform" },
+    { day: 45, label: "Halfway" }, { day: 60, label: "Systems locked" }, { day: 75, label: "Finish mode" }, { day: 90, label: "Transform" },
   ].map((milestone) => ({ ...milestone, date: addDays(start, milestone.day - 1).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }) }));
   const challengeDays = Array.from({ length: 90 }, (_, index) => addDays(start, index));
   const elapsedChallengeDays = challengeDays.slice(0, dayNumber);
@@ -643,16 +643,18 @@ export default function Home() {
     <main className="app-shell">
       <section className="content" id="overview">
         <header className="topbar">
-          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/momentum-logo.png" alt="" width={30} height={30} priority /></span><strong>Momentum</strong><span className="private-mark">Private workspace</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Build the evidence.</span><em>Use the day well.</em></h1></div>
+          <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span><strong>BATCOMPUTER</strong><span className="private-mark">Cave terminal · Private</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Mission control.</span><em>Evidence. Discipline. Course correction.</em></h1></div>
           <div className="challenge-summary">
-            <div className="challenge-summary-head"><span>90-day challenge</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
+            <div className="challenge-summary-head"><span>Active mission · 90 days</span><strong>{daysRemaining}<small>{daysRemaining === 1 ? "day left" : "days left"}</small></strong></div>
             <div className="progress-track"><span style={{ width: `${(dayNumber / 90) * 100}%` }} /></div>
             <div className="xp-row"><span>Level {level}</span><i><b style={{ width: `${levelXp / 10}%` }} /></i><strong>{levelXp.toLocaleString("en-CA")} XP</strong></div>
             <div className="challenge-summary-foot"><span>Finish · {end.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>{session && <button onClick={() => supabase?.auth.signOut()}>Sign out</button>}</div>
           </div>
         </header>
 
-        {preview && <div className="preview-banner"><span><strong>Preview data</strong> — See how your analytics will feel once you build momentum.</span><div><button onClick={() => leavePreview(todayKey)}>Start today</button><button className="ghost-start" onClick={() => leavePreview(dateKey(addDays(today, -1)))}>Started yesterday</button></div></div>}
+        <div className="system-strip" aria-label="Batcomputer system status"><span><i />Terminal online</span><span>Mission day {dayNumber}</span><span>Database · {syncState === "saved" ? "linked" : syncState === "saving" ? "syncing" : syncState === "error" ? "attention" : "local"}</span><span>Clearance · Private</span></div>
+
+        {preview && <div className="preview-banner"><span><strong>Simulation data</strong> — Preview the terminal before the mission begins.</span><div><button onClick={() => leavePreview(todayKey)}>Start today</button><button className="ghost-start" onClick={() => leavePreview(dateKey(addDays(today, -1)))}>Started yesterday</button></div></div>}
         {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
         <section className="dashboard-grid">
@@ -666,12 +668,12 @@ export default function Home() {
           </section>
 
           <article className="panel chart-panel">
-            <div className="panel-header"><h2>Daily score trend</h2><div className="chart-range" role="group" aria-label="Momentum chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
+            <div className="panel-header"><h2>Mission telemetry</h2><div className="chart-range" role="group" aria-label="Mission chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
             <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
           <article className="panel daily-panel" id="today">
-            <div className="panel-header"><h2>Today’s weighted commitments</h2><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
+            <div className="panel-header"><h2>Today’s mission queue</h2><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
@@ -719,7 +721,7 @@ export default function Home() {
           </article>
 
           <article className="panel weekly-panel" id="weekly">
-            <div className="panel-header"><h2>This week vs. last week</h2>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
+            <div className="panel-header"><h2>Weekly mission variance</h2>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
             <div className="comparison-grid">
               {(["Audience", "Career", "Body", "Hair"] as const).map((category) => {
                 const current = categoryAverage(weekDates, category);
@@ -739,12 +741,12 @@ export default function Home() {
           </article>
 
           {reviewAvailable && <article className="panel assistant-panel">
-            <div className="assistant-heading"><h2>Weekly course correction</h2><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
+            <div className="assistant-heading"><h2>Alfred protocol · Course correction</h2><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
             <div className="assistant-insights"><div className="win"><p>Evidence collected</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>Course deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>Correction</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
           </article>}
 
           <article className="panel heatmap-panel">
-            <div className="panel-header"><h2>90-day consistency</h2><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
+            <div className="panel-header"><h2>90-day mission record</h2><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
             <div className="heatmap-wrap">
               <div className="heatmap" role="img" aria-label="90-day consistency map">
                 {challengeDays.map((date, index) => {
@@ -754,19 +756,19 @@ export default function Home() {
                   return <span key={dateKey(date)} className={`heat-cell ${intensity}`} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}%`} />;
                 })}
               </div>
-              <div className="heatmap-legend"><span>Less</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Momentum</span></div>
+              <div className="heatmap-legend"><span>Low</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Maximum</span></div>
             </div>
           </article>
 
           <article className="panel body-panel" id="body">
-            <div className="panel-header"><h2>Weekly weight trend</h2><span className="range-pill">Weekly check-in</span></div>
+            <div className="panel-header"><h2>Body telemetry</h2><span className="range-pill">Weekly check-in</span></div>
             <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>goal <small>kg</small></strong><em>Retain strength and muscle</em></div></div>
             <WeightTrend entries={weeklyWeightEntries} />
             <div className="body-note"><span>i</span><p>Scale weight is only one signal. Use the trend with strength consistency and progress photos; the body-fat figure is a directional estimate from your starting measurements.</p></div>
           </article>
 
           <article className="panel photos-panel">
-            <div className="panel-header"><h2>Visual progress</h2><span className="range-pill">Private</span></div>
+            <div className="panel-header"><h2>Visual evidence archive</h2><span className="range-pill">Private</span></div>
             <div className="photo-content">
               <div className={photo ? "photo-preview has-photo" : "photo-preview"} style={photo ? { backgroundImage: `url(${photo})` } : undefined}><span>{photo ? "Day 1" : "Your first photo"}</span></div>
               <div><h3>Let the mirror catch what the scale misses.</h3><p>Add photos at the start, Day 30, Day 60, and Day 90. They stay visible only to you.</p><label className="upload-button"><input type="file" accept="image/*" onChange={handlePhoto} />{photo ? "Replace preview" : "Add starting photo"}</label></div>
@@ -774,7 +776,7 @@ export default function Home() {
           </article>
 
           <article className="panel milestone-panel" id="milestones">
-            <div className="panel-header"><h2>Challenge milestones</h2><span className="range-pill">90 days</span></div>
+            <div className="panel-header"><h2>Mission milestones</h2><span className="range-pill">90 days</span></div>
             <div className="milestone-track">
               {milestones.map((milestone) => (
                 <div className={dayNumber >= milestone.day ? "milestone reached" : "milestone"} key={milestone.day}><span>{dayNumber >= milestone.day ? <UiIcon name="check" /> : milestone.day}</span><strong>Day {milestone.day}</strong><small>{milestone.label} · {milestone.date}</small></div>
@@ -782,11 +784,11 @@ export default function Home() {
             </div>
           </article>
           {dayNumber >= 90 && <article className="panel end-summary">
-            <div className="panel-header"><h2>Day 90: your transformation, documented</h2><span className="range-pill">Final report</span></div>
-            <div className="end-summary-grid"><div><span>Overall momentum</span><strong>{challengeScore}%</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Clean-eating days</span><strong>{cleanDays}</strong></div><div><span>Strength sessions</span><strong>{strengthDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Posts</span><strong>{totalJobs} · {totalPosts}</strong></div></div>
+            <div className="panel-header"><h2>Day 90 · Mission dossier</h2><span className="range-pill">Final report</span></div>
+            <div className="end-summary-grid"><div><span>Overall score</span><strong>{challengeScore}%</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Clean-eating days</span><strong>{cleanDays}</strong></div><div><span>Strength sessions</span><strong>{strengthDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Posts</span><strong>{totalJobs} · {totalPosts}</strong></div></div>
           </article>}
         </section>
-        <footer><span>Momentum · Your private transformation OS</span><div className="footer-data"><span className={`sync-state ${syncState}`}><i />{syncState === "saving" ? "Saving to cloud…" : syncState === "saved" ? `Cloud saved${lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : ""}` : syncState === "error" ? "Cloud sync needs attention" : "Saved in this browser"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
+        <footer><span>BATCOMPUTER · Private operations terminal</span><div className="footer-data"><span className={`sync-state ${syncState}`}><i />{syncState === "saving" ? "Saving to cloud…" : syncState === "saved" ? `Cloud saved${lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : ""}` : syncState === "error" ? "Cloud sync needs attention" : "Saved in this browser"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
       </section>
     </main>
   );

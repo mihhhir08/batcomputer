@@ -1,10 +1,12 @@
 <div align="center">
 
-# Momentum 90
+<img src="./public/batcomputer-mark.svg" width="120" alt="BATCOMPUTER angular bat emblem" />
 
-### Your transformation, in motion.
+# BATCOMPUTER
 
-A free 90-day dashboard for turning daily actions into visible momentum across body recomposition, publishing, and career goals.
+### Your private 90-day mission control.
+
+A Batcave-inspired dashboard for turning daily actions into visible evidence across body recomposition, publishing, and career goals.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-111111?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-2879FF?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
@@ -20,7 +22,7 @@ A free 90-day dashboard for turning daily actions into visible momentum across b
 
 ## The idea
 
-Most habit trackers make every checkbox feel equally important. Momentum 90 weights each action by its contribution to four outcomes and shows whether the whole system is moving:
+Most habit trackers make every checkbox feel equally important. BATCOMPUTER weights each action by its contribution to four outcomes and shows whether the whole system is moving:
 
 | Audience · 35 | Career · 25 | Body · 30 | Hair · 10 |
 | :--- | :--- | :--- | :--- |
@@ -35,7 +37,7 @@ The daily score is a 100-point impact model rather than a checkbox count. X and 
 |  | Capability | What it does |
 | :---: | :--- | :--- |
 | ◉ | **Daily command center** | One calm check-in for habits, steps, applications, and weight. |
-| ↗ | **Momentum analytics** | A vivid line-and-bar chart switches between 14-day, 30-day, and full-challenge views. |
+| ↗ | **Mission telemetry** | A vivid line-and-bar chart switches between 14-day, 30-day, and full-challenge views. |
 | ≋ | **Weekly comparison** | Compares Audience, Career, Body, and Hair scores with the previous week. |
 | ▦ | **90-day consistency map** | Turns the full challenge into a visual record, one square per day. |
 | ◇ | **Milestones** | Marks Days 15, 30, 45, 60, 75, and 90 without breaking focus. |
@@ -84,7 +86,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Without Supabase variables, Momentum 90 runs in preview mode and saves check-ins to that browser only.
+Open [http://localhost:3000](http://localhost:3000). Without Supabase variables, BATCOMPUTER runs in simulation mode and saves check-ins to that browser only.
 
 ## Connect Supabase
 
@@ -120,7 +122,7 @@ Both commands should pass before a production deployment.
 ## Data safety during an active challenge
 
 > [!IMPORTANT]
-> Browser storage is a convenient preview fallback, not a durable database. Connect Supabase before relying on Momentum 90 for an active challenge.
+> Browser storage is a convenient preview fallback, not a durable database. Connect Supabase before relying on BATCOMPUTER for an active challenge.
 
 - Supabase records and photos remain outside Git and the Vercel deployment bundle.
 - Future database changes should be additive migrations. Never drop or recreate `profiles`, `daily_logs`, or the `progress-photos` bucket while a challenge is active.
