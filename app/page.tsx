@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
@@ -20,6 +20,7 @@ type DayLog = Record<BinaryKey, boolean> & {
 type Logs = Record<string, DayLog>;
 type GoalName = "Audience" | "Career" | "Body" | "Hair";
 type SignalKey = BinaryKey | "xPosts" | "jobs" | "steps" | "water" | "weight" | "waist" | "overall" | "audience" | "career" | "body" | "hair" | "xp";
+type SyncState = "local" | "saving" | "saved" | "error";
 
 const START_DATE = "2026-08-07";
 const WELLNESS_START_DATE = "2026-08-08";
@@ -366,9 +367,69 @@ function SignIn() {
   );
 }
 
+function BootSequence({ leaving, ready, authenticated, hydrated, missionDataError, syncState, dayNumber, daysRemaining, todayState, todayScore, level, intelligence }: {
+  leaving: boolean;
+  ready: boolean;
+  authenticated: boolean;
+  hydrated: boolean;
+  missionDataError: boolean;
+  syncState: SyncState;
+  dayNumber: number;
+  daysRemaining: number;
+  todayState: "UNLOGGED" | "OPEN" | "CLOSED";
+  todayScore: number | null;
+  level: number;
+  intelligence: { lead: string; detail: string };
+}) {
+  const cloudState = syncState === "saved" ? "VERIFIED" : syncState === "saving" ? "VERIFYING" : syncState === "error" ? "ERROR" : "OFFLINE";
+  const cloudTone = syncState === "saved" ? "confirmed" : syncState === "error" || syncState === "local" ? "degraded" : "pending";
+  const finalState = missionDataError ? "USER ACTION REQUIRED" : !ready ? "SYSTEM VERIFYING" : authenticated ? "ACCESS GRANTED" : "IDENTITY REQUIRED";
+
+  return <section className={`boot-screen${leaving ? " boot-leaving" : ""}`} role="status" aria-live="polite" aria-label="BATCOMPUTER initialization">
+    <div className="boot-atmosphere" aria-hidden="true" />
+    <div className="boot-corners" aria-hidden="true"><i /><i /><i /><i /></div>
+    <div className="boot-meta boot-meta-left" aria-hidden="true"><span>BAT // CORE</span><span>SYS.REF 00A</span><span>NODE // PRIMARY</span></div>
+    <div className="boot-meta boot-meta-right" aria-hidden="true"><span>BOOT SEQ // 01</span><span>MISSION DATA</span><span>LOCAL FALLBACK // ARMED</span></div>
+
+    <div className="boot-emblem" aria-hidden="true">
+      <Image src="/batcomputer-mark.svg" alt="" width={184} height={74} priority />
+      <i className="boot-emblem-scan" />
+    </div>
+
+    <header className="boot-identity">
+      <h2>BATCOMPUTER</h2>
+      <p>PRIVATE MISSION SYSTEM</p>
+    </header>
+
+    <div className="boot-checks" aria-label="Initialization checks">
+      <span><b>CORE SYSTEMS</b><em className="confirmed">ONLINE</em></span>
+      <span><b>MISSION DATABASE</b><em className={missionDataError ? "critical" : hydrated ? "confirmed" : "pending"}>{missionDataError ? "UNAVAILABLE" : hydrated ? "LOADED" : "LOADING"}</em></span>
+      <span><b>EVIDENCE NETWORK</b><em className={missionDataError ? "critical" : hydrated ? "confirmed" : "pending"}>{missionDataError ? "ACTION REQUIRED" : hydrated ? "READY" : "INITIALIZING"}</em></span>
+      <span><b>CLOUD SYNC</b><em className={cloudTone}>{cloudState}</em></span>
+      <span><b>LOCAL CACHE</b><em>ACTIVE</em></span>
+      <span><b>BACKUP SCHEMA</b><em>V1</em></span>
+    </div>
+
+    <div className="boot-mission">
+      <p>MISSION DAY // {String(dayNumber).padStart(2, "0")}</p>
+      <strong><span>{String(daysRemaining).padStart(2, "0")} DAYS</span>REMAINING</strong>
+    </div>
+
+    <div className="boot-snapshot">
+      <strong>TODAY // {todayState}</strong>
+      <dl><div><dt>CURRENT SCORE</dt><dd>{todayScore === null ? "PENDING" : `${todayScore} / 100`}</dd></div><div><dt>CURRENT LEVEL</dt><dd>{String(level).padStart(2, "0")}</dd></div><div><dt>SYNC</dt><dd>{cloudState}</dd></div></dl>
+      <p><span>{intelligence.lead}</span>{intelligence.detail}</p>
+    </div>
+
+    <div className={`boot-access${ready ? " ready" : ""}`}>{finalState}</div>
+    {ready && <small className="boot-bypass">ESC OR ENTER // BYPASS SEQUENCE</small>}
+  </section>;
+}
+
 export default function Home() {
   const [logs, setLogs] = useState<Logs>({});
   const [hydrated, setHydrated] = useState(false);
+  const [missionDataError, setMissionDataError] = useState(false);
   const [preview, setPreview] = useState(true);
   const [startDate, setStartDate] = useState(START_DATE);
   const [jobSecuredOn, setJobSecuredOn] = useState<string | null>(null);
@@ -381,12 +442,20 @@ export default function Home() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
   const [clock, setClock] = useState<Date | null>(null);
-  const [booting, setBooting] = useState(false);
-  const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
+  const [booting, setBooting] = useState(true);
+  const [bootLeaving, setBootLeaving] = useState(false);
+  const [bootCycle, setBootCycle] = useState(0);
+  const [syncState, setSyncState] = useState<SyncState>(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const commandInputRef = useRef<HTMLInputElement>(null);
+  const bootStartedAtRef = useRef(0);
+  const bootExitTimerRef = useRef(0);
+
+  useEffect(() => {
+    bootStartedAtRef.current = Date.now();
+  }, []);
 
   useEffect(() => {
     if (supabase) {
@@ -406,8 +475,14 @@ export default function Home() {
       if (savedJobDate) setJobSecuredOn(savedJobDate);
       if (savedInstagramDate) setInstagramStartedOn(savedInstagramDate);
       if (saved) {
-        setLogs(JSON.parse(saved));
-        setPreview(false);
+        try {
+          setLogs(JSON.parse(saved));
+          setPreview(false);
+        } catch {
+          setMissionDataError(true);
+          setPreview(false);
+          setNotice("Mission data could not be read safely. Restore a known-good backup; the stored browser copy has not been overwritten.");
+        }
       } else {
         setLogs(DEMO_LOGS);
       }
@@ -428,8 +503,18 @@ export default function Home() {
         client.from("profiles").select("start_date,job_secured_on,instagram_started_on").eq("user_id", session!.user.id).maybeSingle(),
       ]);
       if (daily.error || profile.error) {
+        const savedLogs = window.localStorage.getItem("momentum-90-logs");
+        if (savedLogs) {
+          try {
+            setLogs(JSON.parse(savedLogs));
+            setPreview(false);
+          } catch {
+            setMissionDataError(true);
+            setNotice("Cloud sync failed and the local mission copy could not be read safely. Restore a known-good backup; existing storage remains untouched.");
+          }
+        }
         setSyncState("error");
-        setNotice("Cloud sync could not load. Your browser copy remains untouched.");
+        if (!savedLogs) setNotice("Cloud sync could not load. No local mission copy was available; retry the connection or restore a backup.");
         setHydrated(true);
         return;
       }
@@ -472,29 +557,62 @@ export default function Home() {
   }, [session]);
 
   useEffect(() => {
-    if (hydrated && !preview) window.localStorage.setItem("momentum-90-logs", JSON.stringify(logs));
-  }, [logs, hydrated, preview]);
+    if (hydrated && !preview && !missionDataError) window.localStorage.setItem("momentum-90-logs", JSON.stringify(logs));
+  }, [logs, hydrated, preview, missionDataError]);
 
   const torontoToday = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const today = new Date(`${torontoToday}T12:00:00Z`);
   const todayKey = dateKey(today);
 
+  const bootReady = authReady && (!isSupabaseConfigured || !session || hydrated);
+  const authenticated = !isSupabaseConfigured || Boolean(session);
+
+  const finishBoot = useCallback(() => {
+    if (!bootReady || bootLeaving) return;
+    setBootLeaving(true);
+    window.clearTimeout(bootExitTimerRef.current);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    bootExitTimerRef.current = window.setTimeout(() => {
+      setBooting(false);
+      setBootLeaving(false);
+    }, reducedMotion ? 80 : 260);
+  }, [bootLeaving, bootReady]);
+
   useEffect(() => {
-    if (!hydrated) return;
-    const bootKey = "batcomputer-session-boot";
-    if (window.sessionStorage.getItem(bootKey)) return;
-    window.sessionStorage.setItem(bootKey, "complete");
-    let finishTimer = 0;
-    const startTimer = window.setTimeout(() => {
-      const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 4000;
-      setBooting(true);
-      finishTimer = window.setTimeout(() => setBooting(false), duration);
-    }, 0);
-    return () => {
-      window.clearTimeout(startTimer);
-      window.clearTimeout(finishTimer);
+    if (!booting || !bootReady) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const elapsed = Date.now() - bootStartedAtRef.current;
+    const timer = window.setTimeout(finishBoot, reducedMotion ? 120 : Math.max(260, 1200 - elapsed));
+    return () => window.clearTimeout(timer);
+  }, [bootCycle, bootReady, booting, finishBoot]);
+
+  useEffect(() => {
+    if (!booting) return;
+    const bypass = (event: KeyboardEvent) => {
+      if (bootReady && (event.key === "Escape" || event.key === "Enter")) {
+        event.preventDefault();
+        finishBoot();
+      }
     };
-  }, [hydrated, todayKey]);
+    window.addEventListener("keydown", bypass);
+    return () => window.removeEventListener("keydown", bypass);
+  }, [bootReady, booting, finishBoot]);
+
+  useEffect(() => {
+    const restoreBoot = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      window.clearTimeout(bootExitTimerRef.current);
+      bootStartedAtRef.current = Date.now();
+      setBootLeaving(false);
+      setBooting(true);
+      setBootCycle((cycle) => cycle + 1);
+    };
+    window.addEventListener("pageshow", restoreBoot);
+    return () => {
+      window.removeEventListener("pageshow", restoreBoot);
+      window.clearTimeout(bootExitTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!inspectedDate) return;
@@ -747,8 +865,6 @@ export default function Home() {
     }
   }
 
-  if (isSupabaseConfigured && !authReady) return <main className="loading-shell">Preparing your private workspace…</main>;
-  if (isSupabaseConfigured && !session) return <SignIn />;
   const milestones = [
     { day: 1, label: "Begin" }, { day: 10, label: "Proof" }, { day: 25, label: "Rhythm" },
     { day: 45, label: "Halfway" }, { day: 60, label: "Systems locked" }, { day: 75, label: "Finish mode" }, { day: 90, label: "Transform" },
@@ -841,21 +957,33 @@ export default function Home() {
     { label: "Scalp massage", value: inspectedLog?.scalpMassage ? "Complete" : "Open", complete: Boolean(inspectedLog?.scalpMassage), show: inspectedDate >= WELLNESS_START_DATE },
   ].filter((signal) => signal.show) : [];
 
+  const todayRecord = logs[todayKey];
+  const todayState = !todayRecord ? "UNLOGGED" : todayRecord.closedAt ? "CLOSED" : "OPEN";
+  const bootTodayScore = todayRecord ? score(todayRecord, todayKey, jobSecuredOn, instagramStartedOn) : null;
+  const previousDate = dateKey(addDays(today, -1));
+  const previousLog = logs[previousDate];
+  const previousDayScore = previousLog ? score(previousLog, previousDate, jobSecuredOn, instagramStartedOn) : null;
+  const checkpoint = [10, 25, 45, 60, 75, 90].includes(dayNumber);
+  const bootIntelligence = jobSecuredOn
+    ? { lead: "CAREER STATE UPDATED", detail: "APPLICATION PROTOCOL RETIRED" }
+    : instagramStartedOn
+      ? { lead: "AUDIENCE SYSTEM UPDATED", detail: "INSTAGRAM SIGNAL ACTIVE" }
+      : previousLog?.recovery
+        ? { lead: "RECOVERY PROTOCOL", detail: "LOGGED // PREVIOUS DAY" }
+        : checkpoint
+          ? { lead: `CHECKPOINT ${dayNumber}`, detail: "MILESTONE VERIFIED" }
+          : previousDayScore !== null && previousDayScore >= 85
+            ? { lead: `PREVIOUS DAY // ${previousDayScore}`, detail: "EXECUTION NOMINAL" }
+            : { lead: "EVIDENCE NETWORK", detail: hydrated ? "READY" : "INITIALIZING" };
+
+  const bootLayer = booting && <BootSequence key={bootCycle} leaving={bootLeaving} ready={bootReady} authenticated={authenticated} hydrated={hydrated} missionDataError={missionDataError} syncState={syncState} dayNumber={dayNumber} daysRemaining={daysRemaining} todayState={todayState} todayScore={bootTodayScore} level={level} intelligence={bootIntelligence} />;
+
+  if (isSupabaseConfigured && !authReady) return <>{bootLayer}<main className="loading-shell" aria-hidden="true">Preparing your private workspace…</main></>;
+  if (isSupabaseConfigured && !session) return <>{bootLayer}<SignIn /></>;
+
   return (
     <main className={`app-shell${booting ? " booting" : ""}`}>
-      {booting && <section className="boot-screen" role="status" aria-live="polite" aria-label="BATCOMPUTER system diagnostic">
-        <div className="boot-grid" aria-hidden="true" />
-        <div className="boot-rail"><span>LOCAL NODE / 01</span><span>MISSION ARCHIVE / LINKED</span><span>TACTICAL DISPLAY / READY</span></div>
-        <div className="boot-core">
-          <span className="boot-kicker">SECURE TERMINAL INITIALIZATION</span>
-          <Image src="/batcomputer-mark.svg" alt="" width={176} height={70} priority />
-          <h2>BATCOMPUTER</h2>
-          <p>Mission data acquired. Interface ready.</p>
-          <div className="boot-progress"><i /></div>
-          <span className="boot-status">SYSTEM DIAGNOSTIC · {syncState === "error" ? "DATA LINK ATTENTION" : "NOMINAL"}</span>
-        </div>
-        <button type="button" onClick={() => setBooting(false)}>Skip diagnostic</button>
-      </section>}
+      {bootLayer}
       <nav className="command-rail" aria-label="BATCOMPUTER command sections">
         {[['01','COMMAND','overview'],['02','TODAY','today'],['03','EVIDENCE','evidence'],['04','SIGNALS','signals'],['05','WEEKLY','weekly'],['06','BODY','body'],['07','MILESTONES','milestones'],['08','DOSSIER','dossier'],['09','SYSTEM','system']].map(([number, label, target]) => <a key={number} href={`#${target}`}><span>{number}</span>{label}</a>)}
         <button type="button" onClick={() => setCommandOpen(true)}><span>K</span>COMMAND</button>

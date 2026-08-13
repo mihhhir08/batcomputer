@@ -32,7 +32,7 @@
   --green-soft: #0c251f;
   --blue: #9fc8df;
   --blue-soft: #102735;
-  --amber: #a4b7c3;
+  --amber: #c7a66b;
   --danger: #d36d71;
   color-scheme: dark;
 }
@@ -400,29 +400,84 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
 @keyframes line-reveal { from { opacity: .35; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0); } }
 @keyframes bar-rise { from { transform: scaleY(0); } }
 @keyframes sync-pulse { 50% { opacity: .35; } }
-@keyframes boot-screen-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes boot-core-in { from { opacity: 0; transform: scale(.97); clip-path: inset(0 50%); } to { opacity: 1; transform: scale(1); clip-path: inset(0); } }
-@keyframes boot-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes boot-scan { from { transform: translateY(-45vh); } to { transform: translateY(55vh); } }
-.boot-screen { position: fixed; z-index: 120; inset: 0; display: grid; place-items: center; overflow: hidden; background: rgba(2,6,9,.97); animation: boot-screen-in .18s ease-out both; }
-.boot-screen::before { content: ""; position: absolute; z-index: 2; inset: 50% 0 auto; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), var(--ink), var(--accent), transparent); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 62%, transparent); animation: boot-scan 3.6s linear both; }
-.boot-grid { position: absolute; inset: 0; opacity: .2; background-image: linear-gradient(color-mix(in srgb, var(--line) 72%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--line) 72%, transparent) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(circle at center, black, transparent 72%); }
-.boot-grid::before, .boot-grid::after { content: ""; position: absolute; width: 26vw; height: 26vw; border: 1px solid var(--line-strong); transform: rotate(45deg); }
-.boot-grid::before { inset: -13vw auto auto -13vw; }
-.boot-grid::after { inset: auto -13vw -13vw auto; }
-.boot-rail { position: absolute; left: clamp(22px, 5vw, 72px); top: 50%; display: grid; gap: 11px; transform: translateY(-50%); color: var(--faint); font-family: "Momentum Mono", monospace; font-size: 9px; letter-spacing: .08em; }
-.boot-rail::before { content: ""; position: absolute; right: calc(100% + 14px); top: 2px; width: 2px; height: calc(100% - 4px); background: var(--accent); }
-.boot-core { position: relative; z-index: 3; width: min(88vw, 560px); display: grid; justify-items: center; padding: 44px 40px 38px; border-block: 1px solid var(--line-strong); text-align: center; animation: boot-core-in .55s cubic-bezier(.16,1,.3,1) both; }
-.boot-core::before, .boot-core::after { content: ""; position: absolute; top: -1px; width: 44px; height: calc(100% + 2px); border-block: 1px solid var(--accent); }
-.boot-core::before { left: 0; border-left: 1px solid var(--accent); }
-.boot-core::after { right: 0; border-right: 1px solid var(--accent); }
-.boot-core img { width: 176px; height: 70px; margin: 18px 0 15px; }
-.boot-kicker, .boot-status { color: var(--accent); font-family: "Momentum Mono", monospace; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
-.boot-core h2 { margin: 0; font-size: clamp(34px, 6vw, 62px); line-height: .9; letter-spacing: .08em; }
-.boot-core p { margin: 13px 0 22px; color: var(--muted); font-family: "Momentum Mono", monospace; font-size: 10px; }
-.boot-progress { width: 100%; height: 3px; margin-bottom: 13px; overflow: hidden; background: var(--surface-strong); }
-.boot-progress i { display: block; width: 100%; height: 100%; transform-origin: left; background: var(--accent); animation: boot-progress 3.6s linear both; }
-.boot-screen > button { position: absolute; z-index: 4; right: clamp(22px, 4vw, 58px); bottom: clamp(22px, 4vw, 46px); min-height: 34px; padding: 0 12px; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); font-family: "Momentum Mono", monospace; font-size: 9px; text-transform: uppercase; }
+@keyframes boot-arrive { from { opacity: 0; clip-path: inset(0 48%); } to { opacity: 1; clip-path: inset(0); } }
+@keyframes boot-emblem-in { from { opacity: 0; filter: brightness(.35); } to { opacity: .88; filter: brightness(1); } }
+@keyframes boot-scan-once { from { transform: translateY(-38px); opacity: 0; } 18% { opacity: .8; } 82% { opacity: .8; } to { transform: translateY(38px); opacity: 0; } }
+@keyframes boot-line-lock { from { opacity: 0; transform: scaleX(.12); } to { opacity: 1; transform: scaleX(1); } }
+@keyframes boot-number-resolve { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes boot-phosphor-confirm { 50% { color: var(--ink); text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 38%, transparent); } }
+
+.boot-screen {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 72px auto auto auto auto auto;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  overflow: hidden;
+  padding: 34px 24px;
+  background: #020405;
+  color: var(--ink);
+  transition: opacity 220ms ease, clip-path 260ms cubic-bezier(.16,1,.3,1);
+}
+.boot-screen.boot-leaving { opacity: 0; clip-path: inset(0 0 100%); pointer-events: none; }
+.boot-atmosphere { position: absolute; inset: 0; opacity: .16; pointer-events: none; background-image: linear-gradient(color-mix(in srgb, var(--line) 56%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--line) 56%, transparent) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse at center, black, transparent 72%); }
+.boot-atmosphere::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 160px rgba(0,0,0,.82); }
+.boot-corners i { position: absolute; width: 34px; height: 34px; border-color: var(--line-strong); border-style: solid; opacity: .72; }
+.boot-corners i:nth-child(1) { top: 28px; left: 32px; border-width: 1px 0 0 1px; }
+.boot-corners i:nth-child(2) { top: 28px; right: 32px; border-width: 1px 1px 0 0; }
+.boot-corners i:nth-child(3) { right: 32px; bottom: 28px; border-width: 0 1px 1px 0; }
+.boot-corners i:nth-child(4) { bottom: 28px; left: 32px; border-width: 0 0 1px 1px; }
+.boot-meta { position: absolute; top: 50%; display: grid; gap: 9px; color: var(--faint); font: 600 8px "Momentum Mono", monospace; letter-spacing: .11em; }
+.boot-meta-left { left: clamp(38px, 6vw, 96px); transform: translateY(-50%); }
+.boot-meta-right { right: clamp(38px, 6vw, 96px); transform: translateY(-50%); text-align: right; }
+
+.boot-emblem { position: relative; width: 184px; height: 72px; overflow: hidden; opacity: 0; animation: boot-emblem-in 300ms 80ms cubic-bezier(.16,1,.3,1) both; transition: transform 240ms cubic-bezier(.16,1,.3,1), opacity 180ms ease; }
+.boot-emblem img { width: 184px; height: 72px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5)); }
+.boot-emblem::before, .boot-emblem::after { content: ""; position: absolute; top: 50%; width: 24px; height: 18px; border-block: 1px solid var(--line-strong); transform: translateY(-50%); }
+.boot-emblem::before { left: 0; border-left: 1px solid var(--line-strong); }
+.boot-emblem::after { right: 0; border-right: 1px solid var(--line-strong); }
+.boot-emblem-scan { position: absolute; inset: 0; height: 1px; background: linear-gradient(90deg, transparent 4%, var(--accent) 35%, var(--ink) 50%, var(--accent) 65%, transparent 96%); box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 35%, transparent); opacity: 0; animation: boot-scan-once 340ms 180ms linear both; }
+
+.boot-identity { position: relative; width: min(88vw, 480px); padding-bottom: 10px; text-align: center; opacity: 0; animation: boot-arrive 260ms 280ms cubic-bezier(.16,1,.3,1) both; transition: transform 240ms cubic-bezier(.16,1,.3,1), opacity 180ms ease; }
+.boot-identity::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--line-strong); transform-origin: center; animation: boot-line-lock 280ms 300ms cubic-bezier(.16,1,.3,1) both; }
+.boot-identity h2 { margin: 0; font-size: clamp(32px, 5vw, 50px); font-weight: 760; line-height: .9; letter-spacing: .08em; }
+.boot-identity p { margin: 8px 0 0; color: var(--muted); font: 650 9px "Momentum Mono", monospace; letter-spacing: .16em; }
+
+.boot-checks { width: min(88vw, 420px); display: grid; gap: 5px; padding: 9px 0; border-bottom: 1px solid var(--line); opacity: 0; animation: boot-arrive 260ms 400ms cubic-bezier(.16,1,.3,1) both; transition: transform 240ms cubic-bezier(.16,1,.3,1), opacity 180ms ease; }
+.boot-checks > span { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; min-height: 14px; font: 600 9px "Momentum Mono", monospace; letter-spacing: .06em; }
+.boot-checks b { color: var(--muted); font-weight: 600; }
+.boot-checks em { color: var(--accent); font-style: normal; }
+.boot-checks em.confirmed { color: var(--green); }
+.boot-checks em.pending { color: var(--muted); }
+.boot-checks em.degraded { color: var(--amber); }
+.boot-checks em.critical { color: var(--danger); }
+
+.boot-mission { width: min(88vw, 480px); text-align: center; opacity: 0; animation: boot-number-resolve 280ms 620ms cubic-bezier(.16,1,.3,1) both; transition: transform 240ms cubic-bezier(.16,1,.3,1), opacity 180ms ease; }
+.boot-mission p { margin: 0 0 5px; color: var(--accent); font: 700 10px "Momentum Mono", monospace; letter-spacing: .12em; }
+.boot-mission strong { display: block; font-size: clamp(29px, 5vw, 47px); font-weight: 760; line-height: .82; letter-spacing: .035em; }
+.boot-mission strong span { display: block; }
+
+.boot-snapshot { width: min(88vw, 420px); text-align: center; opacity: 0; animation: boot-number-resolve 240ms 880ms cubic-bezier(.16,1,.3,1) both; transition: transform 240ms cubic-bezier(.16,1,.3,1), opacity 180ms ease; }
+.boot-snapshot > strong { color: var(--accent); font: 700 10px "Momentum Mono", monospace; letter-spacing: .11em; }
+.boot-snapshot dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 9px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.boot-snapshot dl > div { min-width: 0; padding-inline: 8px; border-right: 1px solid var(--line); }
+.boot-snapshot dl > div:last-child { border-right: 0; }
+.boot-snapshot dt { color: var(--faint); font: 600 7px "Momentum Mono", monospace; letter-spacing: .07em; }
+.boot-snapshot dd { margin: 4px 0 0; color: var(--ink); font: 650 9px "Momentum Mono", monospace; }
+.boot-snapshot > p { display: grid; gap: 2px; margin: 9px 0 0; color: var(--muted); font: 600 8px "Momentum Mono", monospace; letter-spacing: .07em; }
+.boot-snapshot > p span { color: var(--blue); }
+
+.boot-access { min-height: 17px; color: var(--muted); font: 700 10px "Momentum Mono", monospace; letter-spacing: .18em; opacity: 0; animation: boot-arrive 180ms 1020ms cubic-bezier(.16,1,.3,1) both; }
+.boot-access.ready { color: var(--accent); animation: boot-arrive 180ms 1020ms cubic-bezier(.16,1,.3,1) both, boot-phosphor-confirm 420ms 1040ms ease-out 1; }
+.boot-bypass { position: absolute; right: clamp(24px, 4vw, 56px); bottom: clamp(22px, 4vw, 44px); color: var(--faint); font: 600 8px "Momentum Mono", monospace; letter-spacing: .08em; }
+.boot-leaving .boot-emblem { transform: translate(-39vw, -40vh) scale(.28); opacity: .45; }
+.boot-leaving .boot-identity { transform: translate(-32vw, -40vh) scale(.35); opacity: .2; }
+.boot-leaving .boot-mission { transform: translate(31vw, -30vh) scale(.42); opacity: .3; }
+.boot-leaving .boot-snapshot { transform: translate(-24vw, 31vh) scale(.5); opacity: .16; }
+.boot-leaving .boot-checks { transform: translate(28vw, 32vh) scale(.5); opacity: .12; }
 
 @media (max-width: 1080px) {
   .dashboard-grid { grid-template-columns: 1fr; }
@@ -471,7 +526,7 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
   .assistant-insights > div { min-height: 0; }
   .case-outcome { grid-template-columns: 1fr; gap: 6px; }
   .case-outcome > em { text-align: left; }
-  .boot-rail { display: none; }
+  .boot-meta { display: none; }
   .record-dialog-layer { padding: 14px; }
   .heatmap-wrap { margin: 16px; padding: 14px; }
   .heatmap { grid-template-columns: repeat(15, minmax(8px, 1fr)); gap: 5px; }
@@ -520,8 +575,17 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
   .record-status-strip > em { grid-column: 1 / -1; text-align: left; }
   .record-signal-grid { grid-template-columns: 1fr; }
   .record-signal-grid > div:nth-child(odd) { border-right: 0; }
-  .boot-core { padding-inline: 24px; }
-  .boot-screen > button { right: 18px; bottom: 18px; }
+  .boot-screen { grid-template-rows: 62px auto auto auto auto auto; gap: 8px; padding: 24px 18px 48px; }
+  .boot-emblem, .boot-emblem img { width: 152px; height: 62px; }
+  .boot-checks { gap: 7px; }
+  .boot-checks > span { min-height: 16px; font-size: 9px; }
+  .boot-checks > span:nth-child(n+5) { display: none; }
+  .boot-identity h2 { font-size: 34px; }
+  .boot-mission strong { font-size: 34px; }
+  .boot-snapshot dt { font-size: 8px; }
+  .boot-snapshot dd { font-size: 9px; }
+  .boot-bypass { right: 18px; bottom: 18px; }
+  .boot-leaving .boot-emblem, .boot-leaving .boot-identity, .boot-leaving .boot-mission, .boot-leaving .boot-snapshot, .boot-leaving .boot-checks { transform: none; opacity: 0; }
   .chart-range button { padding-inline: 8px; }
   .photo-content { grid-template-columns: 1fr; }
   .photo-preview { width: 130px; }
@@ -531,6 +595,8 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .boot-emblem-scan { display: none; }
+  .boot-leaving .boot-emblem, .boot-leaving .boot-identity, .boot-leaving .boot-mission, .boot-leaving .boot-snapshot, .boot-leaving .boot-checks { transform: none; }
 }
 
 /* Arkham-inspired evidence network: one tactical surface, not a card gallery. */
@@ -547,6 +613,7 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
   --accent: #78ddeb;
   --accent-soft: #0a2930;
   --blue: #abdfff;
+  --amber: #c7a66b;
 }
 
 body {
