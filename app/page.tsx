@@ -190,7 +190,7 @@ function areaPath(points: { x: number; y: number }[], bottom: number) {
   return `${curvePath(points)} L${points.at(-1)!.x},${bottom} L${points[0].x},${bottom} Z`;
 }
 
-function MiniLine({ values, color = "#78bde6" }: { values: number[]; color?: string }) {
+function MiniLine({ values, color = "#61c5ff" }: { values: number[]; color?: string }) {
   const points = values.map((value, index) => `${(index / Math.max(values.length - 1, 1)) * 100},${38 - (value / 100) * 34}`).join(" ");
   return (
     <svg className="mini-line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
@@ -209,7 +209,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
   const y = (value: number) => 15 + ((maximum - value) / Math.max(maximum - minimum, 1)) * 70;
   const points = entries.map(([, value], index) => `${x(index)},${y(value)}`).join(" ");
   return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
-    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#78bde6" stopOpacity=".22" /><stop offset="1" stopColor="#78bde6" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#61c5ff" stopOpacity=".22" /><stop offset="1" stopColor="#61c5ff" stopOpacity="0" /></linearGradient></defs>
     <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
     <polyline key={entries.length} className="weight-line" points={points} fill="none" />
     {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
@@ -217,7 +217,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, startDate, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; startDate: string; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const colors = { Overall: "#78bde6", Audience: "#b7d8ea", Career: "#68b99b" } as const;
+  const colors = { Overall: "#61c5ff", Audience: "#abdfff", Career: "#68b99b" } as const;
   const series = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -753,6 +753,7 @@ export default function Home() {
         <button type="button" onClick={() => setBooting(false)}>Skip diagnostic</button>
       </section>}
       <section className="content" id="overview">
+        <div className="screen-chrome" aria-hidden="true"><span>WAYNE / OPERATIONS NODE</span><i /><em>GOTHAM UPLINK · 43.6532 N</em></div>
         <header className="topbar">
           <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span><strong>BATCOMPUTER</strong><span className="private-mark">Cave terminal · Private</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Mission control.</span><em>Evidence. Discipline. Course correction.</em></h1></div>
           <div className="challenge-summary">
@@ -771,11 +772,11 @@ export default function Home() {
         <section className="dashboard-grid">
           <section className="kpi-grid" aria-label="Key metrics">
             <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{weekLoggedCount} of {weekDayCount} days contain records{hasPreviousWeek ? ` · Previous week ${previousScore}` : ""}</p></article>
-            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#b7d8ea" /><p>Daily target · 10 applications</p></>}</article>
+            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#abdfff" /><p>Daily target · 10 applications</p></>}</article>
             <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
               const log = logs[dateKey(date)] ?? EMPTY_LOG;
               return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
-            })} color="#78bde6" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+            })} color="#61c5ff" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
             <article className="signal-context" aria-live="polite">
               <div className="signal-context-head"><span>Selected signal</span><em>{activeSignal.group}</em></div>
               <strong>{activeSignal.label}</strong>
@@ -791,20 +792,20 @@ export default function Home() {
             </article>
           </section>
 
-          <article className="panel chart-panel">
+          <article className="panel chart-panel" data-sector="TRAJECTORY / LIVE ANALYSIS">
             <div className="panel-header"><h2>Mission telemetry</h2><div className="chart-range" role="group" aria-label="Mission chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
             <TrendChart logs={logs} dates={chartDates} startDate={startDate} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
-          <article className="panel daily-panel" id="today">
+          <article className="panel daily-panel" id="today" data-sector="MISSION QUEUE / ACTIVE">
             <div className="panel-header"><h2>Today’s mission queue</h2><span className="score-ring" role="progressbar" aria-label="Today’s score" aria-valuenow={todayScore} aria-valuemin={0} aria-valuemax={100} style={{ "--score": `${todayScore * 3.6}deg` } as React.CSSProperties}>{todayScore}%</span></div>
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
-                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#78bde6" />
+                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#61c5ff" />
                 <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#68b99b" />
-                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#9fbfd2" />
-                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#8e9da7" />
+                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#82b6d3" />
+                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#718d9c" />
               </div>
             </section>
             <div className="habit-list">
@@ -848,14 +849,14 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="panel weekly-panel" id="weekly">
+          <article className="panel weekly-panel" id="weekly" data-sector="PERFORMANCE / WEEKLY VARIANCE">
             <div className="panel-header"><div><h2>Weekly mission variance</h2><span className="data-confidence">Evidence coverage · {weekLoggedCount}/{weekDayCount} recorded · {weekClosedCount} closed</span></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
             <div className="comparison-grid">
               {(["Audience", "Career", "Body", "Hair"] as const).map((category) => {
                 const current = categoryAverage(weekDates, category);
                 const prior = hasPreviousWeek ? categoryAverage(previousWeekDates, category) : 0;
                 const change = current - prior;
-                const color = { Audience: "#78bde6", Career: "#68b99b", Body: "#9fbfd2", Hair: "#8e9da7" }[category];
+                const color = { Audience: "#61c5ff", Career: "#68b99b", Body: "#82b6d3", Hair: "#718d9c" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
                   <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Week 1"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
@@ -868,13 +869,13 @@ export default function Home() {
             </div>
           </article>
 
-          {reviewAvailable && <article className="panel assistant-panel case-file">
+          {reviewAvailable && <article className="panel assistant-panel case-file" data-sector="ANALYSIS / CORRECTION PROTOCOL">
             <div className="assistant-heading"><div><span className="case-id">CASE FILE / WEEK {challengeWeekIndex + 1}</span><h2>Alfred protocol · Course correction</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
             <div className="assistant-insights"><div className="win"><p>01 / Observation</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>02 / Deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>03 / Directive</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
             {previousWeakestCategory && <div className="case-outcome"><span>Correction check</span><strong>{previousWeakestCategory.category} moved {correctionMovement > 0 ? "+" : ""}{correctionMovement} points after being last week’s weakest system.</strong><em>{correctionMovement > 0 ? "Response detected" : correctionMovement < 0 ? "Directive needs adjustment" : "No movement yet"}</em></div>}
           </article>}
 
-          <article className="panel heatmap-panel">
+          <article className="panel heatmap-panel" data-sector="ARCHIVE / 90-DAY EVIDENCE">
             <div className="panel-header"><h2>90-day mission record</h2><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
             <div className="heatmap-wrap">
               <div className="heatmap" role="group" aria-label="90-day consistency map. Select a day to inspect its record.">
@@ -888,18 +889,18 @@ export default function Home() {
                   return <button type="button" key={logDate} className={`heat-cell ${intensity} record-${recordState}`} aria-label={`Inspect Day ${index + 1}, ${recordState}, ${value}%`} aria-pressed={inspectedDate === logDate} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}% · ${recordState}`} onClick={() => setInspectedDate(logDate)} />;
                 })}
               </div>
-              <div className="heatmap-legend"><span>Low</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Maximum</span></div>
+              <div className="heatmap-legend"><span>Score</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Maximum</span><b /><span className="record-key open">Open</span><span className="record-key closed">Closed</span><span className="record-key unlogged">Unlogged</span></div>
             </div>
           </article>
 
-          <article className="panel body-panel" id="body">
+          <article className="panel body-panel" id="body" data-sector="BIOMETRICS / BODY TELEMETRY">
             <div className="panel-header"><h2>Body telemetry</h2><span className="range-pill">Weekly check-in</span></div>
             <div className="body-metrics"><div><span>Weekly weigh-in</span><strong className="editable-metric"><input aria-label="Latest weight in kilograms" type="number" min="35" max="250" step="0.1" value={latestWeight} onChange={(event) => updateToday({ weight: Number(event.target.value) })} /><small>kg</small></strong><em>Saved against today</em></div><div><span>Change from start</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} <small>kg</small></strong><em>Start</em></div><div><span>RFM estimate</span><strong>{bodyFat.toFixed(1)}<small>%</small></strong><em>Directional estimate</em></div><div><span>Goal</span><strong>goal <small>kg</small></strong><em>Retain strength and muscle</em></div></div>
             <WeightTrend entries={weeklyWeightEntries} />
             <div className="body-note"><span>i</span><p>Scale weight is only one signal. Use the trend with strength consistency and progress photos; the body-fat figure is a directional estimate from your starting measurements.</p></div>
           </article>
 
-          <article className="panel photos-panel">
+          <article className="panel photos-panel" data-sector="VISUAL / EVIDENCE ARCHIVE">
             <div className="panel-header"><h2>Visual evidence archive</h2><span className="range-pill">Private</span></div>
             <div className="photo-content">
               <div className={photo ? "photo-preview has-photo" : "photo-preview"} style={photo ? { backgroundImage: `url(${photo})` } : undefined}><span>{photo ? "Day 1" : "Your first photo"}</span></div>
@@ -907,7 +908,7 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="panel milestone-panel" id="milestones">
+          <article className="panel milestone-panel" id="milestones" data-sector="TIMELINE / MISSION GATES">
             <div className="panel-header"><h2>Mission milestones</h2><span className="range-pill">90 days</span></div>
             <div className="milestone-track">
               {milestones.map((milestone) => (

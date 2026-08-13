@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 64" role="img" aria-labelledby="title">
-  <title id="title">Batcomputer angular bat emblem</title>
-  <path fill="#78BDE6" d="M80 59c-7-11-17-17-31-19L38 53l-5-18-25 7 20-23 21 7 7-20 14 18 10-13 10 13 14-18 7 20 21-7 20 23-25-7-5 18-11-13c-14 2-24 8-31 19Z"/>
-  <path fill="#041016" d="m80 21-8 11 8-4 8 4-8-11Zm-32 9-14-5 9 11 10-3-5-3Zm64 0 14-5-9 11-10-3 5-3Z"/>
+  <title id="title">Batcomputer winged command mark</title>
+  <path fill="none" stroke="#61C5FF" stroke-width="3" stroke-linejoin="miter" d="M8 17 42 26 59 11 80 31l21-20 17 15 34-9-22 25-27-2-23 17-23-17-27 2L8 17Z"/>
+  <path fill="#61C5FF" d="m42 26 15 14 23 17-19-26-19-5Zm76 0-15 14-23 17 19-26 19-5Z" opacity=".24"/>
+  <path fill="#61C5FF" d="M77 27h6v22h-6zM8 17l22 25-9-20 21 4L8 17Zm144 0-22 25 9-20-21 4 34-9Z"/>
 </svg>

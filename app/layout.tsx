@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en" data-theme="dark"><body><template hidden data-impeccable-direction dangerouslySetInnerHTML={{ __html: `<!--
 THESIS: BATCOMPUTER is a private mission-control terminal; action leads, evidence verifies, and course correction keeps the operation moving.
-OWN-WORLD: Nolan-era Batcomputer command array with true-black tactical surfaces, gunmetal structure, cold steel-blue focus and telemetry, forensic labels, and an original angular bat emblem.
+OWN-WORLD: Arkham-inspired evidence network with true-black scan fields, asymmetric command rails, cold blue phosphor signals, compact instrumentation, and an original winged command mark.
 STORY: Authenticate, read mission status, execute today's weighted priorities, then inspect telemetry, variance, body evidence, and milestones.
-FIRST VIEWPORT: Bat emblem and terminal identity lead into mission status and today's operational queue; logging completed work remains the primary action.
-FORM: Cave forensic command array, fourth grounded direction, seed fc249639.
+FIRST VIEWPORT: A wide command mast and mission status lead into the active dossier and connected live-instrument rail; logging completed work remains the primary action.
+FORM: Arkham evidence network, user-pinned canon, seed 3ccdc911.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
 -->` }} />{children}</body></html>;
 }
