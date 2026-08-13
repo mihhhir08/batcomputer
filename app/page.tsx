@@ -14,6 +14,7 @@ type DayLog = Record<BinaryKey, boolean> & {
   recovery: boolean;
   weight?: number;
   waist?: number;
+  closedAt?: string | null;
 };
 
 type Logs = Record<string, DayLog>;
@@ -363,6 +364,7 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
   const [selectedSignal, setSelectedSignal] = useState<SignalKey>("xPosts");
+  const [inspectedDate, setInspectedDate] = useState<string | null>(null);
   const [booting, setBooting] = useState(false);
   const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -458,19 +460,27 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const bootKey = `batcomputer-boot-${todayKey}`;
-    if (window.localStorage.getItem(bootKey)) return;
-    window.localStorage.setItem(bootKey, "complete");
+    const bootKey = "batcomputer-session-boot";
+    if (window.sessionStorage.getItem(bootKey)) return;
+    window.sessionStorage.setItem(bootKey, "complete");
     let finishTimer = 0;
     const startTimer = window.setTimeout(() => {
+      const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 4000;
       setBooting(true);
-      finishTimer = window.setTimeout(() => setBooting(false), 900);
+      finishTimer = window.setTimeout(() => setBooting(false), duration);
     }, 0);
     return () => {
       window.clearTimeout(startTimer);
       window.clearTimeout(finishTimer);
     };
   }, [hydrated, todayKey]);
+
+  useEffect(() => {
+    if (!inspectedDate) return;
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && setInspectedDate(null);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [inspectedDate]);
 
   const todayLog = logs[todayKey] ?? EMPTY_LOG;
   const start = new Date(`${startDate}T12:00:00Z`);
@@ -491,6 +501,8 @@ export default function Home() {
   const weeklyScore = average(weekScores);
   const previousScore = average(previousScores);
   const weeklyDelta = weeklyScore - previousScore;
+  const weekLoggedCount = weekDates.filter((date) => Boolean(logs[dateKey(date)])).length;
+  const weekClosedCount = weekDates.filter((date) => Boolean(logs[dateKey(date)]?.closedAt)).length;
   const careerActiveToday = careerIsActive(todayKey, jobSecuredOn);
   const instagramActiveToday = instagramIsActive(todayKey, instagramStartedOn);
   const contentVolumeActiveToday = todayKey >= CONTENT_VOLUME_START_DATE;
@@ -510,6 +522,9 @@ export default function Home() {
   const weeklyCategories = (["Audience", "Career", "Body", "Hair"] as const).map((category) => ({ category, value: categoryAverage(weekDates, category) }));
   const strongestCategory = [...weeklyCategories].sort((a, b) => b.value - a.value)[0];
   const weakestCategory = [...weeklyCategories].sort((a, b) => a.value - b.value)[0];
+  const previousCategories = hasPreviousWeek ? (["Audience", "Career", "Body", "Hair"] as const).map((category) => ({ category, value: categoryAverage(previousWeekDates, category) })) : [];
+  const previousWeakestCategory = hasPreviousWeek ? [...previousCategories].sort((a, b) => a.value - b.value)[0] : null;
+  const correctionMovement = previousWeakestCategory ? categoryAverage(weekDates, previousWeakestCategory.category) - previousWeakestCategory.value : 0;
   const reviewAvailable = dayNumber >= 7;
   const proofLogs = Object.entries(logs).filter(([logDate]) => logDate >= startDate && logDate < todayKey);
   const proofDays: Partial<Record<BinaryKey | "jobs" | "xPosts", number>> = {
@@ -703,9 +718,40 @@ export default function Home() {
   const signalDates = Array.from({ length: Math.min(7, dayNumber) }, (_, index) => addDays(today, index - Math.min(7, dayNumber) + 1));
   const signalStreak = currentStreak(logs, today, activeSignal.complete);
   const signalCompletedDays = elapsedChallengeDays.filter((date) => activeSignal.complete(logs[dateKey(date)] ?? EMPTY_LOG)).length;
+  const inspectedLog = inspectedDate ? logs[inspectedDate] : undefined;
+  const inspectedDateObject = inspectedDate ? new Date(`${inspectedDate}T12:00:00Z`) : null;
+  const inspectedDay = inspectedDateObject ? Math.floor((inspectedDateObject.getTime() - start.getTime()) / 86400000) + 1 : 0;
+  const inspectedScore = inspectedDate ? score(inspectedLog ?? EMPTY_LOG, inspectedDate, jobSecuredOn, instagramStartedOn) : 0;
+  const inspectedStatus = !inspectedDate || inspectedDate > todayKey ? "Upcoming" : !inspectedLog ? "Not logged" : inspectedLog.closedAt ? (inspectedScore >= 70 ? "Closed · On target" : "Closed · Below target") : inspectedDate === todayKey ? "Open today" : "Record open";
+  const inspectedSignals = inspectedDate ? [
+    { label: "X distribution", value: `${xPostCount(inspectedLog ?? EMPTY_LOG)} posts`, complete: xPostCount(inspectedLog ?? EMPTY_LOG) >= 15, show: inspectedDate >= CONTENT_VOLUME_START_DATE },
+    { label: "LinkedIn", value: inspectedLog?.linkedin ? "Published" : "Open", complete: Boolean(inspectedLog?.linkedin), show: true },
+    { label: "Instagram", value: inspectedLog?.instagram ? "Published" : "Open", complete: Boolean(inspectedLog?.instagram), show: instagramIsActive(inspectedDate, instagramStartedOn) },
+    { label: "Career opportunity", value: inspectedLog?.careerGrowth ? "Complete" : "Open", complete: Boolean(inspectedLog?.careerGrowth), show: inspectedDate >= SKILL_GROWTH_START_DATE },
+    { label: "Job applications", value: `${inspectedLog?.jobs ?? 0} sent`, complete: (inspectedLog?.jobs ?? 0) >= 10, show: careerIsActive(inspectedDate, jobSecuredOn) },
+    { label: "Clean food", value: inspectedLog?.cleanFood ? "Complete" : "Open", complete: Boolean(inspectedLog?.cleanFood), show: true },
+    { label: "Protein", value: inspectedLog?.protein ? "Complete" : "Open", complete: Boolean(inspectedLog?.protein), show: true },
+    { label: "Strength", value: inspectedLog?.recovery ? "Recovery" : inspectedLog?.strength ? "Complete" : "Open", complete: Boolean(inspectedLog?.strength || inspectedLog?.recovery), show: true },
+    { label: "Steps", value: (inspectedLog?.steps ?? 0).toLocaleString("en-CA"), complete: (inspectedLog?.steps ?? 0) >= 10000, show: true },
+    { label: "Water", value: `${inspectedLog?.water ?? 0} L`, complete: (inspectedLog?.water ?? 0) >= 3, show: inspectedDate >= WELLNESS_START_DATE },
+    { label: "Scalp massage", value: inspectedLog?.scalpMassage ? "Complete" : "Open", complete: Boolean(inspectedLog?.scalpMassage), show: inspectedDate >= WELLNESS_START_DATE },
+  ].filter((signal) => signal.show) : [];
 
   return (
     <main className={`app-shell${booting ? " booting" : ""}`}>
+      {booting && <section className="boot-screen" role="status" aria-live="polite" aria-label="BATCOMPUTER system diagnostic">
+        <div className="boot-grid" aria-hidden="true" />
+        <div className="boot-rail"><span>LOCAL NODE / 01</span><span>MISSION ARCHIVE / LINKED</span><span>TACTICAL DISPLAY / READY</span></div>
+        <div className="boot-core">
+          <span className="boot-kicker">SECURE TERMINAL INITIALIZATION</span>
+          <Image src="/batcomputer-mark.svg" alt="" width={176} height={70} priority />
+          <h2>BATCOMPUTER</h2>
+          <p>Mission data acquired. Interface ready.</p>
+          <div className="boot-progress"><i /></div>
+          <span className="boot-status">SYSTEM DIAGNOSTIC · {syncState === "error" ? "DATA LINK ATTENTION" : "NOMINAL"}</span>
+        </div>
+        <button type="button" onClick={() => setBooting(false)}>Skip diagnostic</button>
+      </section>}
       <section className="content" id="overview">
         <header className="topbar">
           <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span><strong>BATCOMPUTER</strong><span className="private-mark">Cave terminal · Private</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Mission control.</span><em>Evidence. Discipline. Course correction.</em></h1></div>
@@ -724,7 +770,7 @@ export default function Home() {
 
         <section className="dashboard-grid">
           <section className="kpi-grid" aria-label="Key metrics">
-            <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
+            <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{weekLoggedCount} of {weekDayCount} days contain records{hasPreviousWeek ? ` · Previous week ${previousScore}` : ""}</p></article>
             <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#b7d8ea" /><p>Daily target · 10 applications</p></>}</article>
             <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
               const log = logs[dateKey(date)] ?? EMPTY_LOG;
@@ -796,10 +842,14 @@ export default function Home() {
                 <div className={`number-row${selectedSignal === "water" ? " inspected" : ""}`}><button type="button" className="task-copy signal-select" onClick={() => setSelectedSignal("water")}><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></button><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
               </section>
             </div>
+            <div className={`day-close-bar${todayLog.closedAt ? " closed" : ""}`}>
+              <div><span>{todayLog.closedAt ? "DAY RECORD / CLOSED" : "DAY RECORD / OPEN"}</span><strong>{todayLog.closedAt ? `${todayScore}% recorded intentionally` : "Close the day when logging is finished."}</strong><small>{todayLog.closedAt ? "You can reopen it if you notice a mistake." : "This separates a real result from missing data."}</small></div>
+              <button type="button" onClick={() => updateToday({ closedAt: todayLog.closedAt ? null : new Date().toISOString() })}>{todayLog.closedAt ? "Reopen day" : `Close at ${todayScore}%`}</button>
+            </div>
           </article>
 
           <article className="panel weekly-panel" id="weekly">
-            <div className="panel-header"><h2>Weekly mission variance</h2>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
+            <div className="panel-header"><div><h2>Weekly mission variance</h2><span className="data-confidence">Evidence coverage · {weekLoggedCount}/{weekDayCount} recorded · {weekClosedCount} closed</span></div>{hasPreviousWeek ? <span className={weeklyDelta >= 0 ? "delta positive" : "delta"}>{weeklyDelta >= 0 ? "+" : ""}{weeklyDelta}% overall</span> : <span className="range-pill">First week</span>}</div>
             <div className="comparison-grid">
               {(["Audience", "Career", "Body", "Hair"] as const).map((category) => {
                 const current = categoryAverage(weekDates, category);
@@ -821,17 +871,21 @@ export default function Home() {
           {reviewAvailable && <article className="panel assistant-panel case-file">
             <div className="assistant-heading"><div><span className="case-id">CASE FILE / WEEK {challengeWeekIndex + 1}</span><h2>Alfred protocol · Course correction</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
             <div className="assistant-insights"><div className="win"><p>01 / Observation</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>02 / Deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>03 / Directive</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
+            {previousWeakestCategory && <div className="case-outcome"><span>Correction check</span><strong>{previousWeakestCategory.category} moved {correctionMovement > 0 ? "+" : ""}{correctionMovement} points after being last week’s weakest system.</strong><em>{correctionMovement > 0 ? "Response detected" : correctionMovement < 0 ? "Directive needs adjustment" : "No movement yet"}</em></div>}
           </article>}
 
           <article className="panel heatmap-panel">
             <div className="panel-header"><h2>90-day mission record</h2><span className="range-pill">{daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining</span></div>
             <div className="heatmap-wrap">
-              <div className="heatmap" role="img" aria-label="90-day consistency map">
+              <div className="heatmap" role="group" aria-label="90-day consistency map. Select a day to inspect its record.">
                 {challengeDays.map((date, index) => {
-                  const value = score(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn);
+                  const logDate = dateKey(date);
+                  const log = logs[logDate];
+                  const value = score(log ?? EMPTY_LOG, logDate, jobSecuredOn, instagramStartedOn);
                   const future = date.getTime() > today.getTime();
                   const intensity = future ? "future" : value >= 75 ? "high" : value >= 40 ? "mid" : value > 0 ? "low" : "empty";
-                  return <span key={dateKey(date)} className={`heat-cell ${intensity}`} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}%`} />;
+                  const recordState = future ? "future" : !log ? "unlogged" : log.closedAt ? "closed" : "open";
+                  return <button type="button" key={logDate} className={`heat-cell ${intensity} record-${recordState}`} aria-label={`Inspect Day ${index + 1}, ${recordState}, ${value}%`} aria-pressed={inspectedDate === logDate} title={`Day ${index + 1} · ${date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · ${value}% · ${recordState}`} onClick={() => setInspectedDate(logDate)} />;
                 })}
               </div>
               <div className="heatmap-legend"><span>Low</span><i className="heat-cell empty" /><i className="heat-cell low" /><i className="heat-cell mid" /><i className="heat-cell high" /><span>Maximum</span></div>
@@ -866,6 +920,20 @@ export default function Home() {
             <div className="end-summary-grid"><div><span>Overall score</span><strong>{challengeScore}%</strong></div><div><span>Weight change</span><strong>{weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)} kg</strong></div><div><span>Clean-eating days</span><strong>{cleanDays}</strong></div><div><span>Strength sessions</span><strong>{strengthDays}</strong></div><div><span>Average steps</span><strong>{averageSteps.toLocaleString("en-CA")}</strong></div><div><span>Applications · Posts</span><strong>{totalJobs} · {totalPosts}</strong></div></div>
           </article>}
         </section>
+        {inspectedDate && inspectedDateObject && <div className="record-dialog-layer">
+          <section className="record-dialog" role="dialog" aria-modal="true" aria-labelledby="record-dialog-title">
+            <div className="record-dialog-head">
+              <div><span>MISSION ARCHIVE / DAY {inspectedDay.toString().padStart(2, "0")}</span><h2 id="record-dialog-title">{inspectedDateObject.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</h2></div>
+              <button type="button" onClick={() => setInspectedDate(null)} aria-label="Close mission record">×</button>
+            </div>
+            <div className="record-status-strip"><span className={inspectedLog?.closedAt ? "closed" : ""}>{inspectedStatus}</span><strong>{inspectedScore}%</strong><em>{inspectedLog ? "Evidence present" : "No evidence recorded"}</em></div>
+            <div className="record-signal-grid">
+              {inspectedSignals.map((signal) => <div key={signal.label} className={signal.complete ? "complete" : ""}><i><UiIcon name={signal.complete ? "check" : "pause"} /></i><span><strong>{signal.label}</strong><small>{signal.value}</small></span></div>)}
+            </div>
+            {typeof inspectedLog?.weight === "number" && <div className="record-weight"><span>Body telemetry</span><strong>{inspectedLog.weight.toFixed(1)} kg</strong></div>}
+            <p>{inspectedStatus === "Not logged" ? "This day is absent from the evidence record. It is not automatically treated as an intentional failure." : inspectedLog?.closedAt ? "This result was intentionally closed and can be distinguished from missing data." : inspectedDate < todayKey ? "This day contains evidence but was never intentionally closed." : "Continue logging today, then close the record when you are finished."}</p>
+          </section>
+        </div>}
         <footer><span>BATCOMPUTER · Private operations terminal</span><div className="footer-data"><span className={`sync-state ${syncState}`}><i />{syncState === "saving" ? "Saving to cloud…" : syncState === "saved" ? `Cloud saved${lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : ""}` : syncState === "error" ? "Cloud sync needs attention" : "Saved in this browser"}</span><button onClick={downloadBackup}>Download backup</button><label><input type="file" accept="application/json" onChange={restoreBackup} />Restore backup</label></div></footer>
       </section>
     </main>
