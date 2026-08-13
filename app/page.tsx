@@ -188,7 +188,7 @@ function areaPath(points: { x: number; y: number }[], bottom: number) {
   return `${curvePath(points)} L${points.at(-1)!.x},${bottom} L${points[0].x},${bottom} Z`;
 }
 
-function MiniLine({ values, color = "#ff5d35" }: { values: number[]; color?: string }) {
+function MiniLine({ values, color = "#f0b35a" }: { values: number[]; color?: string }) {
   const points = values.map((value, index) => `${(index / Math.max(values.length - 1, 1)) * 100},${38 - (value / 100) * 34}`).join(" ");
   return (
     <svg className="mini-line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
@@ -207,7 +207,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
   const y = (value: number) => 15 + ((maximum - value) / Math.max(maximum - minimum, 1)) * 70;
   const points = entries.map(([, value], index) => `${x(index)},${y(value)}`).join(" ");
   return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
-    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#e58a69" stopOpacity=".2" /><stop offset="1" stopColor="#e58a69" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#55c7ff" stopOpacity=".22" /><stop offset="1" stopColor="#55c7ff" stopOpacity="0" /></linearGradient></defs>
     <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
     <polyline key={entries.length} className="weight-line" points={points} fill="none" />
     {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
@@ -215,7 +215,7 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
 }
 
 function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const colors = { Overall: "#ff7a59", Audience: "#58a6ff", Career: "#3fb950" } as const;
+  const colors = { Overall: "#f0b35a", Audience: "#55c7ff", Career: "#63d6a0" } as const;
   const series = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -239,7 +239,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
         <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Overall, audience, and career daily score trends">
           <defs>
             <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors.Overall} stopOpacity=".22" /><stop offset="1" stopColor={colors.Overall} stopOpacity="0" /></linearGradient>
-            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff7a59" stopOpacity=".72" /><stop offset="1" stopColor="#ff7a59" stopOpacity=".16" /></linearGradient>
+            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#55c7ff" stopOpacity=".6" /><stop offset="1" stopColor="#55c7ff" stopOpacity=".08" /></linearGradient>
           </defs>
           {[0, 50, 100].map((value) => (
             <g key={value}>
@@ -249,7 +249,7 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
           ))}
           {overall.observations.length > 1 && <path className="trend-area" d={areaPath(overall.observations.map(({ index, value }) => ({ x: x(index), y: y(value) })), y(0))} />}
           {overall.observations.map(({ index, value }) => (
-            <rect key={`bar-${dates.length}-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx={Math.min(5, barWidth / 2)}>
+            <rect key={`bar-${dates.length}-${dateKey(dates[index])}`} className="trend-bar" x={x(index) - barWidth / 2} y={y(value)} width={barWidth} height={y(0) - y(value)} rx="1">
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
@@ -464,6 +464,28 @@ export default function Home() {
   const strongestCategory = [...weeklyCategories].sort((a, b) => b.value - a.value)[0];
   const weakestCategory = [...weeklyCategories].sort((a, b) => a.value - b.value)[0];
   const reviewAvailable = dayNumber >= 7;
+  const proofLogs = Object.entries(logs).filter(([logDate]) => logDate >= startDate && logDate < todayKey);
+  const proofDays: Partial<Record<BinaryKey | "jobs" | "xPosts", number>> = {
+    linkedin: proofLogs.filter(([, log]) => log.linkedin).length,
+    careerGrowth: proofLogs.filter(([, log]) => log.careerGrowth).length,
+    scalpMassage: proofLogs.filter(([, log]) => log.scalpMassage).length,
+    jobs: proofLogs.filter(([, log]) => log.jobs >= 10).length,
+    xPosts: proofLogs.filter(([, log]) => xPostCount(log) >= 15).length,
+  };
+  const proofNote = (count: number) => `Proof: you completed this on ${count} earlier ${count === 1 ? "day" : "days"}.`;
+  const categoryProofDays = (category: GoalName) => weekDates.filter((date) => categoryScores(logs[dateKey(date)] ?? EMPTY_LOG, dateKey(date), jobSecuredOn, instagramStartedOn)[category] >= 70).length;
+  const strongestProofDays = categoryProofDays(strongestCategory.category);
+  const weakestProofDays = categoryProofDays(weakestCategory.category);
+  const evidenceSummary = strongestProofDays > 0
+    ? `${strongestCategory.category} cleared 70% on ${strongestProofDays} of ${weekDayCount} challenge days.`
+    : `${strongestCategory.category} leads at ${strongestCategory.value}%, but no system has cleared 70% yet.`;
+  const deviationSummary = `${weakestCategory.category} averaged ${weakestCategory.value}% and cleared 70% on ${weakestProofDays} of ${weekDayCount} days${hasPreviousWeek ? `; overall momentum is ${weeklyDelta >= 0 ? "up" : "down"} ${Math.abs(weeklyDelta)}%` : ""}.`;
+  const correctionByCategory: Record<GoalName, string> = {
+    Audience: "Tomorrow, secure 15 X posts and one LinkedIn post before lower-impact work.",
+    Career: careerActiveToday ? "Tomorrow, complete 10 applications or the career opportunity block before ending the day." : "Protect one career opportunity block tomorrow: skill, project, interview prep, or outreach.",
+    Body: "Tomorrow, restore the body floor: clean food, protein, strength or recovery, 10,000 steps, and 3 L water.",
+    Hair: "Protect tomorrow’s scalp massage. The correction is consistency, not intensity.",
+  };
 
   function updateToday(patch: Partial<DayLog>) {
     const next = { ...(preview ? EMPTY_LOG : logs[todayKey] ?? EMPTY_LOG), ...patch };
@@ -636,11 +658,11 @@ export default function Home() {
         <section className="dashboard-grid">
           <section className="kpi-grid" aria-label="Key metrics">
             <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
-            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#2879ff" /><p>Daily target · 10 applications</p></>}</article>
+            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#55c7ff" /><p>Daily target · 10 applications</p></>}</article>
             <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
               const log = logs[dateKey(date)] ?? EMPTY_LOG;
               return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
-            })} color="#f5a623" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+            })} color="#f0b35a" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
           </section>
 
           <article className="panel chart-panel">
@@ -653,10 +675,10 @@ export default function Home() {
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
-                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ff6b43" />
-                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#16b364" />
-                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#48a0f8" />
-                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#d28b31" />
+                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#55c7ff" />
+                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#63d6a0" />
+                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#4e8dff" />
+                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#f0b35a" />
               </div>
             </section>
             <div className="habit-list">
@@ -667,14 +689,14 @@ export default function Home() {
                 ) : (
                   <label className="habit-row" key={habit.key}>
                     <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
-                    <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
+                    <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{!todayLog[habit.key] && (proofDays[habit.key] ?? 0) > 0 ? proofNote(proofDays[habit.key]!) : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                   </label>
                 ))}
               </section>
               <section className="task-group focus-metrics">
                 <div className="task-group-head"><strong>Measured focus</strong><span>Update the outcome, not the clock</span></div>
-                {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>15 minimum · every extra post earns XP</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
-                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>Target · 10 quality applications</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+                {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>{xPostsToday < 15 && (proofDays.xPosts ?? 0) > 0 ? proofNote(proofDays.xPosts!) : "15 minimum · every extra post earns XP"}</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
+                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>{todayLog.jobs < 10 && (proofDays.jobs ?? 0) > 0 ? proofNote(proofDays.jobs!) : "Target · 10 quality applications"}</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
               </section>
               <section className="task-group maintenance-checks">
                 <div className="task-group-head"><strong>Maintenance</strong><span>Protect the routines that keep you capable</span></div>
@@ -683,7 +705,7 @@ export default function Home() {
                 ) : (
                   <label className="habit-row" key={habit.key}>
                     <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
-                    <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
+                    <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : !todayLog[habit.key] && (proofDays[habit.key] ?? 0) > 0 ? proofNote(proofDays[habit.key]!) : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                   </label>
                 ))}
                 {!todayLog.recovery && <button className="plan-recovery" onClick={() => updateToday({ recovery: true, strength: false })}><span><UiIcon name="pause" /></span><span><strong>Plan strength recovery</strong><small>Use only when your body genuinely needs it</small></span><em>Plan day</em></button>}
@@ -703,7 +725,7 @@ export default function Home() {
                 const current = categoryAverage(weekDates, category);
                 const prior = hasPreviousWeek ? categoryAverage(previousWeekDates, category) : 0;
                 const change = current - prior;
-                const color = { Audience: "#ff6b43", Career: "#16b364", Body: "#48a0f8", Hair: "#d28b31" }[category];
+                const color = { Audience: "#55c7ff", Career: "#63d6a0", Body: "#4e8dff", Hair: "#f0b35a" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
                   <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Week 1"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
@@ -717,8 +739,8 @@ export default function Home() {
           </article>
 
           {reviewAvailable && <article className="panel assistant-panel">
-            <div className="assistant-heading"><h2>Weekly review: what the data suggests</h2><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
-            <div className="assistant-insights"><div className="win"><p>Strongest</p><strong>{strongestCategory.category} led the week at {strongestCategory.value}%.</strong></div><div className="watch"><p>Needs attention</p><strong>{weakestCategory.category} was the lowest system at {weakestCategory.value}%.</strong></div><div className="adjust"><p>Next move</p><strong>{hasPreviousWeek ? weeklyDelta >= 0 ? `Protect the routines creating your +${weeklyDelta}% momentum.` : `Simplify the next week and rebuild ${weakestCategory.category.toLowerCase()} consistency first.` : `Carry your strongest ${strongestCategory.category.toLowerCase()} routine into Week 2.`}</strong></div></div>
+            <div className="assistant-heading"><h2>Weekly course correction</h2><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
+            <div className="assistant-insights"><div className="win"><p>Evidence collected</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>Course deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>Correction</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
           </article>}
 
           <article className="panel heatmap-panel">
