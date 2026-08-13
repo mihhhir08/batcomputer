@@ -18,6 +18,7 @@ type DayLog = Record<BinaryKey, boolean> & {
 
 type Logs = Record<string, DayLog>;
 type GoalName = "Audience" | "Career" | "Body" | "Hair";
+type SignalKey = BinaryKey | "xPosts" | "jobs" | "steps" | "water";
 
 const START_DATE = "2026-08-07";
 const WELLNESS_START_DATE = "2026-08-08";
@@ -188,7 +189,7 @@ function areaPath(points: { x: number; y: number }[], bottom: number) {
   return `${curvePath(points)} L${points.at(-1)!.x},${bottom} L${points[0].x},${bottom} Z`;
 }
 
-function MiniLine({ values, color = "#ffd43b" }: { values: number[]; color?: string }) {
+function MiniLine({ values, color = "#78bde6" }: { values: number[]; color?: string }) {
   const points = values.map((value, index) => `${(index / Math.max(values.length - 1, 1)) * 100},${38 - (value / 100) * 34}`).join(" ");
   return (
     <svg className="mini-line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
@@ -207,15 +208,15 @@ function WeightTrend({ entries }: { entries: [string, number][] }) {
   const y = (value: number) => 15 + ((maximum - value) / Math.max(maximum - minimum, 1)) * 70;
   const points = entries.map(([, value], index) => `${x(index)},${y(value)}`).join(" ");
   return <div className="weight-trend"><svg viewBox="0 0 400 108" role="img" aria-label={`Weight trend from ${values[0]} to ${values.at(-1)} kilograms`}>
-    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8bb9d0" stopOpacity=".22" /><stop offset="1" stopColor="#8bb9d0" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#78bde6" stopOpacity=".22" /><stop offset="1" stopColor="#78bde6" stopOpacity="0" /></linearGradient></defs>
     <path d={`M${x(0)} 92 L${points.replaceAll(" ", " L")} L${x(entries.length - 1)} 92 Z`} fill="url(#weight-fill)" />
     <polyline key={entries.length} className="weight-line" points={points} fill="none" />
     {entries.map(([date, value], index) => <circle key={date} cx={x(index)} cy={y(value)} r="3.5"><title>{date} · {value} kg</title></circle>)}
   </svg></div>;
 }
 
-function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
-  const colors = { Overall: "#ffd43b", Audience: "#8bb9d0", Career: "#70d49b" } as const;
+function TrendChart({ logs, dates, startDate, jobSecuredOn, instagramStartedOn }: { logs: Logs; dates: Date[]; startDate: string; jobSecuredOn: string | null; instagramStartedOn: string | null }) {
+  const colors = { Overall: "#78bde6", Audience: "#b7d8ea", Career: "#68b99b" } as const;
   const series = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => ({
     name,
     observations: dates.flatMap((date, index) => {
@@ -227,6 +228,8 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
   const y = (value: number) => 18 + ((100 - value) / 100) * 190;
   const barWidth = Math.max(3, Math.min(22, 620 / dates.length));
   const overall = series[0];
+  const missionStart = new Date(`${startDate}T12:00:00Z`);
+  const milestoneDays = new Set([10, 25, 45, 60, 75, 90]);
 
   return (
     <>
@@ -239,8 +242,10 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
         <svg className="trend-chart" viewBox="0 0 760 245" role="img" aria-label="Overall, audience, and career daily score trends">
           <defs>
             <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors.Overall} stopOpacity=".22" /><stop offset="1" stopColor={colors.Overall} stopOpacity="0" /></linearGradient>
-            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffd43b" stopOpacity=".5" /><stop offset="1" stopColor="#ffd43b" stopOpacity=".06" /></linearGradient>
+            <linearGradient id="momentum-bars" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colors.Overall} stopOpacity=".48" /><stop offset="1" stopColor={colors.Overall} stopOpacity=".04" /></linearGradient>
           </defs>
+          <rect className="target-zone" x="44" y={y(100)} width="696" height={y(70) - y(100)} />
+          <text x="52" y={y(70) - 7} className="target-label">TARGET BAND · 70–100</text>
           {[0, 50, 100].map((value) => (
             <g key={value}>
               <line x1="44" x2="740" y1={y(value)} y2={y(value)} className="grid-line" />
@@ -253,6 +258,17 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
               <title>{dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}% overall</title>
             </rect>
           ))}
+          {dates.map((date, index) => {
+            const day = Math.floor((date.getTime() - missionStart.getTime()) / 86400000) + 1;
+            const log = logs[dateKey(date)];
+            if (!milestoneDays.has(day) && !log?.recovery) return null;
+            return <g key={`event-${dateKey(date)}`} className="chart-event">
+              <line x1={x(index)} x2={x(index)} y1={y(100)} y2={y(0)} className="event-marker" />
+              <circle cx={x(index)} cy={log?.recovery ? y(8) : y(96)} r="3.5" className={log?.recovery ? "recovery-marker" : "milestone-marker"}>
+                <title>{log?.recovery ? "Planned recovery" : `Mission milestone · Day ${day}`}</title>
+              </circle>
+            </g>;
+          })}
           {series.map(({ name, observations }) => {
             const points = observations.map(({ index, value }) => ({ x: x(index), y: y(value) }));
             const lastPoint = points.at(-1);
@@ -263,6 +279,18 @@ function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: { logs: L
             </g>;
           })}
           {overall.observations.length <= 1 && <text x="392" y="218" textAnchor="middle" className="baseline-note">{overall.observations.length ? "First check-in saved · add another day to compare the trends" : "No check-ins in this range yet"}</text>}
+          {dates.map((date, index) => {
+            const log = logs[dateKey(date)];
+            if (!log) return null;
+            const values = categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn);
+            const hitWidth = Math.max(16, 696 / Math.max(dates.length, 1));
+            return <g key={`hit-${dateKey(date)}`} className="chart-day-hit">
+              <line x1={x(index)} x2={x(index)} y1={y(100)} y2={y(0)} />
+              <rect x={x(index) - hitWidth / 2} y={y(100)} width={hitWidth} height={y(0) - y(100)}>
+                <title>{date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · Overall {values.Overall}% · Audience {values.Audience}% · Career {values.Career}%{log.recovery ? " · Recovery planned" : ""}</title>
+              </rect>
+            </g>;
+          })}
           {dates.map((date, index) => (index === 0 || index === dates.length - 1) && (
             <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
               {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
@@ -334,6 +362,8 @@ export default function Home() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [chartRange, setChartRange] = useState<14 | 30 | 90>(14);
+  const [selectedSignal, setSelectedSignal] = useState<SignalKey>("xPosts");
+  const [booting, setBooting] = useState(false);
   const [syncState, setSyncState] = useState<"local" | "saving" | "saved" | "error">(isSupabaseConfigured ? "saving" : "local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -425,6 +455,23 @@ export default function Home() {
   const torontoToday = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const today = new Date(`${torontoToday}T12:00:00Z`);
   const todayKey = dateKey(today);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const bootKey = `batcomputer-boot-${todayKey}`;
+    if (window.localStorage.getItem(bootKey)) return;
+    window.localStorage.setItem(bootKey, "complete");
+    let finishTimer = 0;
+    const startTimer = window.setTimeout(() => {
+      setBooting(true);
+      finishTimer = window.setTimeout(() => setBooting(false), 900);
+    }, 0);
+    return () => {
+      window.clearTimeout(startTimer);
+      window.clearTimeout(finishTimer);
+    };
+  }, [hydrated, todayKey]);
+
   const todayLog = logs[todayKey] ?? EMPTY_LOG;
   const start = new Date(`${startDate}T12:00:00Z`);
   const end = addDays(start, 89);
@@ -638,9 +685,27 @@ export default function Home() {
   }, 0);
   const level = Math.floor(challengeXp / 1000) + 1;
   const levelXp = challengeXp % 1000;
+  const signalMeta: Record<SignalKey, { label: string; target: string; group: GoalName; complete: (log: DayLog) => boolean; value: (log: DayLog) => string }> = {
+    x: { label: "Post on X", target: "Daily", group: "Audience", complete: (log) => log.x, value: (log) => log.x ? "Complete" : "Open" },
+    linkedin: { label: "LinkedIn post", target: "1 daily", group: "Audience", complete: (log) => log.linkedin, value: (log) => log.linkedin ? "Complete" : "Open" },
+    instagram: { label: "Instagram post", target: instagramStartedOn ? "1 daily" : "Upcoming", group: "Audience", complete: (log) => log.instagram, value: (log) => log.instagram ? "Complete" : "Open" },
+    cleanFood: { label: "Clean food", target: "All day", group: "Body", complete: (log) => log.cleanFood, value: (log) => log.cleanFood ? "Complete" : "Open" },
+    protein: { label: "Protein target", target: "Daily", group: "Body", complete: (log) => log.protein, value: (log) => log.protein ? "Complete" : "Open" },
+    strength: { label: "Strength session", target: "Workout or recovery", group: "Body", complete: (log) => log.strength || log.recovery, value: (log) => log.recovery ? "Recovery" : log.strength ? "Complete" : "Open" },
+    scalpMassage: { label: "Scalp massage", target: "Daily", group: "Hair", complete: (log) => log.scalpMassage, value: (log) => log.scalpMassage ? "Complete" : "Open" },
+    careerGrowth: { label: "Career opportunity", target: "45 focused min", group: "Career", complete: (log) => log.careerGrowth, value: (log) => log.careerGrowth ? "Complete" : "Open" },
+    xPosts: { label: "X distribution", target: "15 minimum", group: "Audience", complete: (log) => xPostCount(log) >= 15, value: (log) => `${xPostCount(log)} posts` },
+    jobs: { label: "Job applications", target: "10 daily", group: "Career", complete: (log) => log.jobs >= 10, value: (log) => `${log.jobs} sent` },
+    steps: { label: "Daily steps", target: "10,000", group: "Body", complete: (log) => log.steps >= 10000, value: (log) => log.steps.toLocaleString("en-CA") },
+    water: { label: "Water intake", target: "3 L", group: "Body", complete: (log) => (log.water ?? 0) >= 3, value: (log) => `${log.water ?? 0} L` },
+  };
+  const activeSignal = signalMeta[selectedSignal];
+  const signalDates = Array.from({ length: Math.min(7, dayNumber) }, (_, index) => addDays(today, index - Math.min(7, dayNumber) + 1));
+  const signalStreak = currentStreak(logs, today, activeSignal.complete);
+  const signalCompletedDays = elapsedChallengeDays.filter((date) => activeSignal.complete(logs[dateKey(date)] ?? EMPTY_LOG)).length;
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${booting ? " booting" : ""}`}>
       <section className="content" id="overview">
         <header className="topbar">
           <div className="topbar-copy"><div className="topbar-brand"><span className="brand-mark"><Image src="/batcomputer-mark.svg" alt="" width={48} height={24} priority /></span><strong>BATCOMPUTER</strong><span className="private-mark">Cave terminal · Private</span></div><p className="topbar-date">{today.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}</p><h1><span>Mission control.</span><em>Evidence. Discipline. Course correction.</em></h1></div>
@@ -660,16 +725,29 @@ export default function Home() {
         <section className="dashboard-grid">
           <section className="kpi-grid" aria-label="Key metrics">
             <article className="kpi-card featured"><div className="kpi-top"><span>Weekly score</span><span className={hasPreviousWeek && weeklyDelta >= 0 ? "delta positive" : "delta"}>{hasPreviousWeek ? `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}%` : `Week ${challengeWeekIndex + 1}`}</span></div><div className="kpi-value">{weeklyScore}<small>/100</small></div><MiniLine values={weekScores} /><p>{hasPreviousWeek ? `Previous week · ${previousScore}` : `${weekDayCount} of 7 days recorded`}</p></article>
-            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#8bb9d0" /><p>Daily target · 10 applications</p></>}</article>
+            <article className={jobSecuredOn ? "kpi-card job-kpi secured" : "kpi-card job-kpi"}><div className="kpi-top"><span>{jobSecuredOn ? "Career outcome" : "Job applications"}</span><span className={jobSecuredOn ? "status-dot" : "blue-dot"} /></div><div className="kpi-value">{jobSecuredOn ? "Secured" : totalJobs}<small>{jobSecuredOn ? "goal reached" : "total"}</small></div>{jobSecuredOn ? <div className="career-win-line"><span>Applications retired</span><button onClick={() => updateJobOutcome(null)}>Reopen</button></div> : <><MiniLine values={weekDates.map((date) => Math.min((logs[dateKey(date)]?.jobs ?? 0) * 10, 100))} color="#b7d8ea" /><p>Daily target · 10 applications</p></>}</article>
             <article className="kpi-card"><div className="kpi-top"><span>Content published</span><span className="orange-dot" /></div><div className="kpi-value">{totalPosts}<small>posts</small></div><MiniLine values={weekDates.map((date) => {
               const log = logs[dateKey(date)] ?? EMPTY_LOG;
               return categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn).Audience;
-            })} color="#ffd43b" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+            })} color="#78bde6" /><p>{instagramStartedOn ? "Across X, LinkedIn & Instagram" : "X & LinkedIn · Instagram upcoming"}</p></article>
+            <article className="signal-context" aria-live="polite">
+              <div className="signal-context-head"><span>Selected signal</span><em>{activeSignal.group}</em></div>
+              <strong>{activeSignal.label}</strong>
+              <div className="signal-reading"><span>{activeSignal.value(todayLog)}</span><small>Target · {activeSignal.target}</small></div>
+              <div className="signal-history" aria-label={`${activeSignal.label} seven-day history`}>
+                {signalDates.map((date) => {
+                  const log = logs[dateKey(date)] ?? EMPTY_LOG;
+                  return <i key={dateKey(date)} className={activeSignal.complete(log) ? "complete" : ""} title={`${dateKey(date)} · ${activeSignal.value(log)}`} />;
+                })}
+              </div>
+              <div className="signal-proof"><span><b>{signalStreak}</b> day streak</span><span><b>{signalCompletedDays}</b> mission days</span></div>
+              <p>Select any task in the mission queue to inspect its evidence here.</p>
+            </article>
           </section>
 
           <article className="panel chart-panel">
             <div className="panel-header"><h2>Mission telemetry</h2><div className="chart-range" role="group" aria-label="Mission chart range">{([14, 30, 90] as const).map((range) => <button type="button" key={range} className={chartRange === range ? "active" : ""} aria-pressed={chartRange === range} onClick={() => setChartRange(range)}>{range === 90 ? "90 days" : `${range} days`}</button>)}</div></div>
-            <TrendChart logs={logs} dates={chartDates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
+            <TrendChart logs={logs} dates={chartDates} startDate={startDate} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
           </article>
 
           <article className="panel daily-panel" id="today">
@@ -677,10 +755,10 @@ export default function Home() {
             <section className="goal-balance" aria-label="Today’s impact by goal">
               <div className="goal-balance-head"><strong>Score by goal</strong><span>Weighted contribution today</span></div>
               <div className="goal-grid">
-                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#ffd43b" />
-                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#70d49b" />
-                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#8bb9d0" />
-                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#c7a96b" />
+                <GoalProgress name="Audience" value={todayGoalScores.Audience} points={todayPoints.Audience} total={35} color="#78bde6" />
+                <GoalProgress name="Career" value={todayGoalScores.Career} points={todayPoints.Career} total={25} color="#68b99b" />
+                <GoalProgress name="Body" value={todayGoalScores.Body} points={todayPoints.Body} total={30} color="#9fbfd2" />
+                <GoalProgress name="Hair" value={todayGoalScores.Hair} points={todayPoints.Hair} total={10} color="#8e9da7" />
               </div>
             </section>
             <div className="habit-list">
@@ -689,24 +767,24 @@ export default function Home() {
                 {HABITS.filter((habit) => ["linkedin", "careerGrowth", "instagram"].includes(habit.key)).map((habit) => habit.key === "instagram" && !instagramActiveToday ? (
                   <div className="habit-row upcoming-habit" key={habit.key}><span className="upcoming-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Instagram posting</strong><small>Part of the 90-day goal · starts when you’re ready</small></span><button onClick={startInstagram}>Start Instagram</button></div>
                 ) : (
-                  <label className="habit-row" key={habit.key}>
-                    <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
+                  <label className={`habit-row${selectedSignal === habit.key ? " inspected" : ""}`} key={habit.key}>
+                    <input type="checkbox" checked={todayLog[habit.key]} onChange={() => { setSelectedSignal(habit.key); updateToday({ [habit.key]: !todayLog[habit.key] }); }} />
                     <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{!todayLog[habit.key] && (proofDays[habit.key] ?? 0) > 0 ? proofNote(proofDays[habit.key]!) : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                   </label>
                 ))}
               </section>
               <section className="task-group focus-metrics">
                 <div className="task-group-head"><strong>Measured focus</strong><span>Update the outcome, not the clock</span></div>
-                {contentVolumeActiveToday && <div className="number-row content-volume-row"><span className="task-copy"><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>{xPostsToday < 15 && (proofDays.xPosts ?? 0) > 0 ? proofNote(proofDays.xPosts!) : "15 minimum · every extra post earns XP"}</small></span><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
-                {careerActiveToday ? <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>{todayLog.jobs < 10 && (proofDays.jobs ?? 0) > 0 ? proofNote(proofDays.jobs!) : "Target · 10 quality applications"}</small></span><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
+                {contentVolumeActiveToday && <div className={`number-row content-volume-row${selectedSignal === "xPosts" ? " inspected" : ""}`}><button type="button" className="task-copy signal-select" onClick={() => setSelectedSignal("xPosts")}><span className="task-heading"><strong>X distribution</strong><em>Audience · 20 pts</em></span><small>{xPostsToday < 15 && (proofDays.xPosts ?? 0) > 0 ? proofNote(proofDays.xPosts!) : "15 minimum · every extra post earns XP"}</small></button><MetricStepper label="X posts today" value={xPostsToday} step={1} unit="posts" complete={xPostsToday >= 15} onChange={(xPosts) => updateToday({ xPosts })} /></div>}
+                {careerActiveToday ? <div className={`number-row${selectedSignal === "jobs" ? " inspected" : ""}`}><button type="button" className="task-copy signal-select" onClick={() => setSelectedSignal("jobs")}><span className="task-heading"><strong>Job applications</strong><em>Career · 12 pts</em></span><small>{todayLog.jobs < 10 && (proofDays.jobs ?? 0) > 0 ? proofNote(proofDays.jobs!) : "Target · 10 quality applications"}</small></button><div className="job-controls"><div className="stepper"><button aria-label="Remove one application" onClick={() => updateToday({ jobs: Math.max(0, todayLog.jobs - 1) })}>−</button><strong>{todayLog.jobs}</strong><button aria-label="Add one application" onClick={() => updateToday({ jobs: todayLog.jobs + 1 })}>+</button></div><button className="job-won-button" onClick={() => updateJobOutcome(todayKey)}>I got the job</button></div></div> : <div className="job-secured-row"><span><UiIcon name="check" /></span><div><strong>Job secured</strong><small>Applications retired · career opportunity work is now worth 25 points</small></div><button onClick={() => updateJobOutcome(null)}>Reopen</button></div>}
               </section>
               <section className="task-group maintenance-checks">
                 <div className="task-group-head"><strong>Maintenance</strong><span>Protect the routines that keep you capable</span></div>
                 {HABITS.filter((habit) => ["cleanFood", "protein", "strength", "scalpMassage"].includes(habit.key)).map((habit) => habit.key === "strength" && todayLog.recovery ? (
                   <div className="habit-row recovery-habit" key={habit.key}><span className="recovery-mark"><UiIcon name="pause" /></span><span className="habit-copy"><strong>Strength recovery</strong><small>Planned recovery · protects your 7 body points</small></span><button onClick={() => updateToday({ recovery: false })}>Restore workout</button></div>
                 ) : (
-                  <label className="habit-row" key={habit.key}>
-                    <input type="checkbox" checked={todayLog[habit.key]} onChange={() => updateToday({ [habit.key]: !todayLog[habit.key] })} />
+                  <label className={`habit-row${selectedSignal === habit.key ? " inspected" : ""}`} key={habit.key}>
+                    <input type="checkbox" checked={todayLog[habit.key]} onChange={() => { setSelectedSignal(habit.key); updateToday({ [habit.key]: !todayLog[habit.key] }); }} />
                     <span className="custom-check"><UiIcon name="check" /></span><span className="habit-copy"><strong>{habit.label}</strong><small>{habit.key === "scalpMassage" && scalpStreak ? `${scalpStreak}-day streak ${todayLog.scalpMassage ? "protected" : "at risk today"}` : !todayLog[habit.key] && (proofDays[habit.key] ?? 0) > 0 ? proofNote(proofDays[habit.key]!) : habit.note}</small></span><span className={`group-tag ${habit.group.toLowerCase()}-tag`}>{habit.group} · {habitImpact(habit.key, instagramActiveToday, careerActiveToday)} pts</span>
                   </label>
                 ))}
@@ -714,8 +792,8 @@ export default function Home() {
               </section>
               <section className="task-group maintenance-metrics">
                 <div className="task-group-head"><strong>Daily measures</strong><span>Fast updates, separate from focus time</span></div>
-                <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></span><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
-                <div className="number-row"><span className="task-copy"><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></span><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
+                <div className={`number-row${selectedSignal === "steps" ? " inspected" : ""}`}><button type="button" className="task-copy signal-select" onClick={() => setSelectedSignal("steps")}><span className="task-heading"><strong>Daily steps</strong><em>Body · 4 pts</em></span><small>Target · 10,000</small></button><MetricStepper label="steps today" value={todayLog.steps} step={500} unit="steps" complete={todayLog.steps >= 10000} onChange={(steps) => updateToday({ steps })} /></div>
+                <div className={`number-row${selectedSignal === "water" ? " inspected" : ""}`}><button type="button" className="task-copy signal-select" onClick={() => setSelectedSignal("water")}><span className="task-heading"><strong>Water intake</strong><em>Body · 5 pts</em></span><small>3 L earns full points · 4 L is optional</small></button><MetricStepper label="water intake today in litres" value={todayLog.water ?? 0} step={0.25} unit="L" complete={(todayLog.water ?? 0) >= 3} onChange={(water) => updateToday({ water })} /></div>
               </section>
             </div>
           </article>
@@ -727,7 +805,7 @@ export default function Home() {
                 const current = categoryAverage(weekDates, category);
                 const prior = hasPreviousWeek ? categoryAverage(previousWeekDates, category) : 0;
                 const change = current - prior;
-                const color = { Audience: "#ffd43b", Career: "#70d49b", Body: "#8bb9d0", Hair: "#c7a96b" }[category];
+                const color = { Audience: "#78bde6", Career: "#68b99b", Body: "#9fbfd2", Hair: "#8e9da7" }[category];
                 return <section className="comparison-card" key={category} style={{ "--category-color": color } as React.CSSProperties}>
                   <div className="comparison-card-head"><span><i />{category}</span><em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>{hasPreviousWeek ? `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change)}%` : "Week 1"}</em></div>
                   <div className="comparison-score"><strong>{current}</strong><span>%<small>this week</small></span></div>
@@ -740,9 +818,9 @@ export default function Home() {
             </div>
           </article>
 
-          {reviewAvailable && <article className="panel assistant-panel">
-            <div className="assistant-heading"><h2>Alfred protocol · Course correction</h2><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
-            <div className="assistant-insights"><div className="win"><p>Evidence collected</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>Course deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>Correction</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
+          {reviewAvailable && <article className="panel assistant-panel case-file">
+            <div className="assistant-heading"><div><span className="case-id">CASE FILE / WEEK {challengeWeekIndex + 1}</span><h2>Alfred protocol · Course correction</h2></div><span className="range-pill">Days {challengeWeekIndex * 7 + 1}–{dayNumber}</span></div>
+            <div className="assistant-insights"><div className="win"><p>01 / Observation</p><strong>{evidenceSummary}</strong></div><div className="watch"><p>02 / Deviation</p><strong>{deviationSummary}</strong></div><div className="adjust"><p>03 / Directive</p><strong>{correctionByCategory[weakestCategory.category]}</strong></div></div>
           </article>}
 
           <article className="panel heatmap-panel">
