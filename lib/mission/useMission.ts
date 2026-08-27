@@ -207,3 +207,5 @@ export function useMission() {
     updateToday, startMission, setJobOutcome, startInstagram,
   };
 }
+
+export type Mission = ReturnType<typeof useMission>;
