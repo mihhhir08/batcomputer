@@ -16,7 +16,8 @@
   gap: 20px; flex-wrap: wrap; margin-bottom: 16px;
 }
 
-.readout-strip { display: flex; gap: 22px; margin: 0; }
+.readout-strip { display: flex; gap: 22px; margin: 0; flex-wrap: wrap; }
+.readout-strip.wide { gap: 30px 34px; width: 100%; }
 .readout-strip div { display: flex; flex-direction: column; gap: 3px; }
 .readout-strip dt {
   color: var(--faint); font-family: "Momentum Mono", monospace;
@@ -38,9 +39,9 @@
 .range-switch button.active { background: var(--accent); color: var(--accent-ink); }
 
 .delta { font-family: "Momentum Mono", monospace; font-size: 11px; letter-spacing: .08em; }
-.delta.up, .up { color: var(--green); }
-.delta.down, .down { color: var(--danger); }
-.flat { color: var(--faint); }
+.delta.up, .variance-card em.up, .dossier-block .up { color: var(--green); }
+.delta.down, .variance-card em.down, .dossier-block .down { color: var(--danger); }
+.delta.flat, .variance-card em.flat { color: var(--faint); }
 
 /* COMMAND ---------------------------------------------------------------- */
 
@@ -200,6 +201,8 @@
 
 /* TRAJECTORY ------------------------------------------------------------- */
 
+.trajectory-sector { display: flex; flex-direction: column; gap: 14px; }
+
 .trend-wrap { border: 1px solid var(--line); padding: 14px 12px 8px; background: color-mix(in srgb, var(--paper) 60%, transparent); }
 .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; padding-left: 4px; }
 .chart-key { display: flex; align-items: center; gap: 6px; color: var(--muted); font-family: "Momentum Mono", monospace; font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
@@ -247,6 +250,8 @@
 .signal-note { margin: 0; color: var(--faint); font-size: 11.5px; line-height: 1.5; }
 
 /* VARIANCE --------------------------------------------------------------- */
+
+.variance-sector { display: flex; flex-direction: column; gap: 16px; }
 
 .variance-headline { display: flex; flex-direction: column; gap: 4px; }
 .variance-headline strong { font-family: "Momentum Mono", monospace; font-size: 34px; line-height: 1; }
