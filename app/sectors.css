@@ -144,7 +144,7 @@
 .queue-mark { width: 15px; height: 15px; flex: 0 0 15px; border: 1px solid var(--line-strong); rotate: 45deg; transition: background .2s ease, border-color .2s ease; }
 .queue-row.met .queue-mark { background: var(--green); border-color: var(--green); box-shadow: 0 0 9px color-mix(in srgb, var(--green) 55%, transparent); }
 .queue-row:has(input:focus-visible) .queue-mark { outline: 2px solid var(--accent); outline-offset: 3px; }
-.queue-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.queue-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .queue-copy strong { font-size: 13.5px; font-weight: 650; }
 .queue-row.met .queue-copy strong { color: var(--green); }
 .queue-copy small { color: var(--faint); font-size: 11px; }
@@ -179,17 +179,19 @@
 
 /* Stepper ---------------------------------------------------------------- */
 
-.stepper { display: flex; align-items: stretch; border: 1px solid var(--line-strong); }
+.stepper { display: flex; align-items: stretch; flex: 0 0 auto; border: 1px solid var(--line-strong); background: var(--canvas); }
 .stepper button {
-  width: 30px; border: 0; background: none; color: var(--muted); font-size: 15px; line-height: 1;
+  width: 34px; border: 0; background: none; color: var(--muted); font-size: 17px; line-height: 1;
 }
 .stepper button:hover:not(:disabled) { background: var(--accent); color: var(--accent-ink); }
 .stepper button:disabled { color: var(--line); }
 .stepper-value { display: flex; align-items: baseline; gap: 4px; padding: 0 8px; border-inline: 1px solid var(--line-strong); }
 .stepper-value input {
-  width: 62px; padding: 7px 0; border: 0; background: none; color: var(--ink); text-align: right;
-  font-family: "Momentum Mono", monospace; font-size: 13px; font-variant-numeric: tabular-nums;
+  width: 74px; padding: 8px 0; border: 0; background: none; color: var(--ink); text-align: right;
+  font-family: "Momentum Mono", monospace; font-size: 16px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
+.stepper-value input::placeholder { color: var(--faint); opacity: 1; }
 .stepper-value input::-webkit-outer-spin-button, .stepper-value input::-webkit-inner-spin-button { appearance: none; margin: 0; }
 .stepper-value input[type="number"] { -moz-appearance: textfield; }
 .stepper-value span { color: var(--faint); font-family: "Momentum Mono", monospace; font-size: 9.5px; letter-spacing: .08em; }

@@ -28,8 +28,7 @@ export function Stepper({ label, value, step, unit, complete, onChange }: {
           type="number"
           min="0"
           step={step}
-          value={value || ""}
-          placeholder="0"
+          value={value}
           onChange={(event) => onChange(Math.max(0, Number(event.target.value)))}
         />
         <span>{unit}</span>
