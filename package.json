@@ -9,8 +9,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node tests/mission.test.ts && node tests/decode.test.ts && next build",
-    "lint": "eslint . --ignore-pattern .next"
+    "test": "node tests/mission.test.ts && node tests/decode.test.ts && node scripts/audit-css.mjs && next build",
+    "lint": "eslint . --ignore-pattern .next",
+    "audit:css": "node scripts/audit-css.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.55.0",
