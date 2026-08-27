@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { supabase } from "../lib/supabase.ts";
 
-export function SignIn() {
+export function SignIn({ onSkip }: { onSkip: () => void }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -36,7 +36,10 @@ export function SignIn() {
           {sending ? "Sending…" : "Email me a sign-in link"}
         </button>
         {message && <div className="auth-message" role="status">{message}</div>}
-        <small>Passwordless · Private · Encrypted in transit</small>
+        <button type="button" className="auth-skip" onClick={onSkip}>
+          Continue on this device without signing in
+        </button>
+        <small>Signing in syncs across devices. Skipping keeps everything in this browser.</small>
       </section>
     </main>
   );

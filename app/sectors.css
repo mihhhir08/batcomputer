@@ -395,3 +395,10 @@
 .dossier-public .archive-cell { cursor: default; }
 .dossier-public footer p { color: var(--faint); font-size: 11.5px; margin: 0; }
 .dossier-public.empty { justify-content: center; text-align: center; min-height: 100dvh; }
+
+.auth-skip {
+  border: 0; background: none; padding: 4px 0;
+  color: var(--faint); font-size: 12px; text-decoration: underline;
+  text-underline-offset: 3px; cursor: pointer;
+}
+.auth-skip:hover { color: var(--accent); }

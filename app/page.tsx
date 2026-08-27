@@ -36,7 +36,7 @@ export default function Terminal() {
     jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
     notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady, linkTimedOut,
     today, todayKey, start, dayNumber, daysRemaining, todayLog,
-    updateToday, startMission, setJobOutcome, startInstagram,
+    updateToday, startMission, setJobOutcome, startInstagram, workLocally,
   } = mission;
 
   const [sector, setSector] = useState<SectorId>(DEFAULT_SECTOR);
@@ -251,7 +251,7 @@ export default function Terminal() {
   if (isSupabaseConfigured && !authReady && !linkTimedOut) {
     return <>{boot}<main className="loading-shell" aria-hidden="true">Mounting mission database…</main></>;
   }
-  if (isSupabaseConfigured && !session && !linkTimedOut) return <>{boot}<SignIn /></>;
+  if (isSupabaseConfigured && !session && !linkTimedOut) return <>{boot}<SignIn onSkip={workLocally} /></>;
 
   const dossierCategories = (["Audience", "Career", "Body", "Hair"] as GoalName[])
     .map((category) => ({ category, value: stats.categoryAverage(stats.recorded, category) }));

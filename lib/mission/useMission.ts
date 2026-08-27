@@ -166,6 +166,15 @@ export function useMission() {
 
   // Reads preview/logs from the closure rather than nesting one state updater
   // inside another; updaters must stay pure so StrictMode can double-invoke them.
+  /** Deliberate offline mode. The terminal is yours whether or not a link exists. */
+  const workLocally = useCallback(() => {
+    setLinkTimedOut(true);
+    setAuthReady(true);
+    setSyncState("local");
+    loadLocal();
+    setNotice("Working on this device only. Sign in from SYSTEM whenever you want cloud sync back.");
+  }, [loadLocal]);
+
   const updateToday = useCallback((patch: Partial<DayLog>) => {
     const next = { ...(preview ? EMPTY_LOG : logs[todayKey] ?? EMPTY_LOG), ...patch };
     if (preview) setPreview(false);
@@ -231,7 +240,7 @@ export function useMission() {
     jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
     notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady,
     today, todayKey, start, end, dayNumber, daysRemaining, todayLog, linkTimedOut,
-    updateToday, startMission, setJobOutcome, startInstagram,
+    updateToday, startMission, setJobOutcome, startInstagram, workLocally,
   };
 }
 
