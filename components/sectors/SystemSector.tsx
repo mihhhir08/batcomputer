@@ -11,6 +11,29 @@ const LINK_STATE: Record<SyncState, { text: string; tone: string }> = {
   local: { text: "LOCAL ONLY · NO CLOUD CONFIGURED", tone: "pending" },
 };
 
+/** navigator.clipboard fails on some contexts; fall back to a selection copy. */
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const field = document.createElement("textarea");
+      field.value = text;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(field);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
 export function SystemSector({
   syncState, lastSyncedAt, missionDataError, startDate, dayNumber, logCount,
   onBackup, onRestore, onSignOut, signedIn, shareUrl, onShare, onRevokeShare, sharing,
@@ -73,10 +96,12 @@ export function SystemSector({
             <div className="share-link">
               <code>{shareUrl}</code>
               <button type="button" onClick={() => {
-                void navigator.clipboard.writeText(shareUrl);
-                setCopied(true);
-                sound.commit();
-                window.setTimeout(() => setCopied(false), 1600);
+                void copyText(shareUrl).then((ok) => {
+                  setCopied(ok);
+                  ok ? sound.commit() : sound.deny();
+                  if (!ok) window.prompt("Copy this link", shareUrl);
+                  window.setTimeout(() => setCopied(false), 1600);
+                });
               }}>{copied ? "COPIED" : "COPY"}</button>
             </div>
             <small>Read-only. Body metrics are stripped. There is no write path on that route.</small>

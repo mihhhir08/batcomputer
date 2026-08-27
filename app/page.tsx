@@ -195,7 +195,12 @@ export default function Terminal() {
       const data = await response.json();
       if (data?.url) {
         setShareUrl(data.url);
-        setNotice("Read-only link generated. Body metrics are stripped from the snapshot.");
+        // Copy immediately: this still runs inside the click that started it,
+        // which is what the clipboard API actually requires.
+        const copied = await navigator.clipboard.writeText(data.url).then(() => true).catch(() => false);
+        setNotice(copied
+          ? "Read-only link copied to your clipboard. Body metrics are stripped."
+          : "Read-only link generated. Use COPY to put it on your clipboard.");
       } else {
         setNotice("Share link could not be generated.");
       }
