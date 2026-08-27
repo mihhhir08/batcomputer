@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node tests/mission.test.ts && next build",
+    "test": "node tests/mission.test.ts && node tests/decode.test.ts && next build",
     "lint": "eslint . --ignore-pattern .next"
   },
   "dependencies": {
