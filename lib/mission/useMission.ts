@@ -1,16 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
-import { isSupabaseConfigured, supabase } from "../supabase.ts";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DEMO_LOGS, STORAGE, stripRetired } from "./demo.ts";
 import { addDays, dateFromKey, dateKey, missionToday } from "./dates.ts";
 import { EMPTY_LOG, START_DATE, type DayLog, type Logs, type SyncState } from "./types.ts";
 
-/**
- * Owns every piece of mission state: auth, cloud sync, local fallback, and the
- * writes. Sectors render it; none of them talk to Supabase directly.
- */
+// No sign-in. This is a single-operator terminal, so the browser keeps the
+// authoritative copy in localStorage and mirrors it through /api/mission,
+// which holds the only database credential. Cloud failures are never allowed
+// to block logging: the local write always lands first.
+
+async function post(payload: unknown) {
+  const response = await fetch("/api/mission", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(`save failed: ${response.status}`);
+  return response.json();
+}
+
 export function useMission() {
   const [logs, setLogs] = useState<Logs>({});
   const [hydrated, setHydrated] = useState(false);
@@ -20,135 +29,97 @@ export function useMission() {
   const [jobSecuredOn, setJobSecuredOn] = useState<string | null>(null);
   const [instagramStartedOn, setInstagramStartedOn] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  const [syncState, setSyncState] = useState<SyncState>(isSupabaseConfigured ? "saving" : "local");
+  const [syncState, setSyncState] = useState<SyncState>("local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const cloudReady = useRef(false);
 
-  const [linkTimedOut, setLinkTimedOut] = useState(false);
-
-  const loadLocal = useCallback(() => {
+  const readLocal = useCallback(() => {
     const saved = window.localStorage.getItem(STORAGE.logs);
     const savedStart = window.localStorage.getItem(STORAGE.start);
     const savedJob = window.localStorage.getItem(STORAGE.jobSecured);
     const savedInstagram = window.localStorage.getItem(STORAGE.instagramStarted);
+    const started = window.localStorage.getItem(STORAGE.started) === "true" || Boolean(savedStart);
     if (savedStart) setStartDate(savedStart);
     if (savedJob) setJobSecuredOn(savedJob);
     if (savedInstagram) setInstagramStartedOn(savedInstagram);
-    if (saved) {
-      try {
-        setLogs(stripRetired(JSON.parse(saved)));
-        setPreview(false);
-      } catch {
-        setMissionDataError(true);
-        setPreview(false);
-        setNotice("Mission data could not be read safely. Restore a known-good backup; the stored browser copy has not been overwritten.");
-      }
-    } else {
-      setLogs(DEMO_LOGS);
+
+    if (!saved) {
+      if (!started) setLogs(DEMO_LOGS);
+      return { logs: {} as Logs, started };
     }
-    setHydrated(true);
+    try {
+      const parsed = stripRetired(JSON.parse(saved));
+      setLogs(parsed);
+      setPreview(false);
+      return { logs: parsed, started: true };
+    } catch {
+      setMissionDataError(true);
+      setPreview(false);
+      setNotice("Mission data could not be read safely. Restore a known-good backup; the stored browser copy has not been overwritten.");
+      return { logs: {} as Logs, started };
+    }
   }, []);
 
   useEffect(() => {
-    if (!supabase) {
-      queueMicrotask(loadLocal);
-      return;
-    }
-    // A paused or unreachable project must not hold the terminal hostage.
-    // After this the app runs on the local record and says so.
-    const giveUp = window.setTimeout(() => {
-      setLinkTimedOut(true);
-      setAuthReady(true);
-      setSyncState("error");
-      setNotice("The cloud link did not answer. Running on this browser's record; your data is intact.");
-      loadLocal();
-    }, 6000);
+    const local = readLocal();
+    setHydrated(true);
 
-    supabase.auth.getSession().then(({ data }) => {
-      window.clearTimeout(giveUp);
-      setSession(data.session);
-      setAuthReady(true);
-      if (!data.session) loadLocal();
-    }).catch(() => {
-      window.clearTimeout(giveUp);
-      setLinkTimedOut(true);
-      setAuthReady(true);
-      setSyncState("error");
-      loadLocal();
-    });
+    const controller = new AbortController();
+    const giveUp = window.setTimeout(() => controller.abort(), 7000);
 
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    fetch("/api/mission", { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then(async (data) => {
+        window.clearTimeout(giveUp);
+        if (!data?.configured) return setSyncState("local");
+        if (data.error) return setSyncState("error");
+
+        cloudReady.current = true;
+        const cloudLogs = (data.logs ?? {}) as Logs;
+        const cloudCount = Object.keys(cloudLogs).length;
+        const localCount = Object.keys(local.logs).length;
+
+        if (cloudCount) {
+          // Cloud is authoritative once it has anything; local edits made while
+          // offline are merged on top rather than discarded.
+          const merged = { ...cloudLogs, ...local.logs };
+          setLogs(merged);
+          setPreview(false);
+          window.localStorage.setItem(STORAGE.logs, JSON.stringify(merged));
+          window.localStorage.setItem(STORAGE.started, "true");
+          if (localCount && Object.keys(merged).length !== cloudCount) {
+            await post({ type: "bulk", logs: local.logs }).catch(() => undefined);
+          }
+        } else if (localCount) {
+          await post({ type: "bulk", logs: local.logs }).catch(() => undefined);
+        }
+
+        if (data.profile?.exists) {
+          setStartDate(data.profile.startDate);
+          setJobSecuredOn(data.profile.jobSecuredOn);
+          setInstagramStartedOn(data.profile.instagramStartedOn);
+          window.localStorage.setItem(STORAGE.start, data.profile.startDate);
+          window.localStorage.setItem(STORAGE.started, "true");
+          setPreview(false);
+        } else if (local.started) {
+          await post({ type: "profile", startDate: local.logs ? startDate : START_DATE }).catch(() => undefined);
+        }
+
+        setSyncState("saved");
+        setLastSyncedAt(new Date());
+      })
+      .catch(() => {
+        window.clearTimeout(giveUp);
+        setSyncState("error");
+      });
+
     return () => {
       window.clearTimeout(giveUp);
-      data.subscription.unsubscribe();
+      controller.abort();
     };
-  }, [loadLocal]);
-
-  useEffect(() => {
-    if (!supabase || !session) return;
-    const client = supabase;
-    const userId = session.user.id;
-
-    async function loadWorkspace() {
-      const [daily, profile] = await Promise.all([
-        client.from("daily_logs").select("log_date,data").eq("user_id", userId),
-        client.from("profiles").select("start_date,job_secured_on,instagram_started_on").eq("user_id", userId).maybeSingle(),
-      ]);
-
-      if (daily.error || profile.error) {
-        const savedLogs = window.localStorage.getItem(STORAGE.logs);
-        if (savedLogs) {
-          try {
-            setLogs(stripRetired(JSON.parse(savedLogs)));
-            setPreview(false);
-          } catch {
-            setMissionDataError(true);
-            setNotice("Cloud sync failed and the local mission copy could not be read safely. Restore a known-good backup; existing storage remains untouched.");
-          }
-        }
-        setSyncState("error");
-        if (!savedLogs) setNotice("Cloud sync could not load. No local mission copy was available; retry the connection or restore a backup.");
-        setHydrated(true);
-        return;
-      }
-
-      const savedLogs = window.localStorage.getItem(STORAGE.logs);
-      const savedStart = window.localStorage.getItem(STORAGE.start);
-      const locallyStarted = window.localStorage.getItem(STORAGE.started) === "true" || Boolean(savedStart);
-      const localLogs = savedLogs ? (JSON.parse(savedLogs) as Logs) : {};
-      let syncFailed = false;
-      let nextLogs = stripRetired(Object.fromEntries((daily.data ?? []).map((row) => [row.log_date, row.data])));
-
-      if (!daily.data?.length && Object.keys(localLogs).length && locallyStarted) {
-        const cleaned = stripRetired(localLogs);
-        const rows = Object.entries(cleaned).map(([log_date, data]) => ({ user_id: userId, log_date, data }));
-        const migrated = await client.from("daily_logs").upsert(rows);
-        nextLogs = cleaned;
-        syncFailed = Boolean(migrated.error);
-      }
-
-      setLogs(nextLogs);
-      if (profile.data?.start_date) {
-        setStartDate(profile.data.start_date);
-        window.localStorage.setItem(STORAGE.start, profile.data.start_date);
-        window.localStorage.setItem(STORAGE.started, "true");
-      }
-      if (profile.data?.job_secured_on) setJobSecuredOn(profile.data.job_secured_on);
-      if (profile.data?.instagram_started_on) setInstagramStartedOn(profile.data.instagram_started_on);
-      if (!profile.data && locallyStarted) {
-        const created = await client.from("profiles").upsert({ user_id: userId, start_date: savedStart ?? START_DATE, height_cm: 0, start_weight_kg: 0 });
-        if (created.error) syncFailed = true;
-        else window.localStorage.setItem(STORAGE.started, "true");
-      }
-      setPreview(!profile.data && !locallyStarted);
-      setSyncState(syncFailed ? "error" : "saved");
-      if (!syncFailed) setLastSyncedAt(new Date());
-      setHydrated(true);
-    }
-
-    void loadWorkspace();
-  }, [session]);
+    // Runs once. startDate is read only as a fallback for a first-time profile.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readLocal]);
 
   useEffect(() => {
     if (hydrated && !preview && !missionDataError) {
@@ -164,34 +135,19 @@ export function useMission() {
   const daysRemaining = Math.min(90, Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86400000) + 1));
   const todayLog = logs[todayKey] ?? EMPTY_LOG;
 
-  // Reads preview/logs from the closure rather than nesting one state updater
-  // inside another; updaters must stay pure so StrictMode can double-invoke them.
-  /** Deliberate offline mode. The terminal is yours whether or not a link exists. */
-  const workLocally = useCallback(() => {
-    setLinkTimedOut(true);
-    setAuthReady(true);
-    setSyncState("local");
-    loadLocal();
-    setNotice("Working on this device only. Sign in from SYSTEM whenever you want cloud sync back.");
-  }, [loadLocal]);
-
   const updateToday = useCallback((patch: Partial<DayLog>) => {
     const next = { ...(preview ? EMPTY_LOG : logs[todayKey] ?? EMPTY_LOG), ...patch };
     if (preview) setPreview(false);
     setLogs((current) => ({ ...(preview ? {} : current), [todayKey]: next }));
-    if (supabase && session) {
-      setSyncState("saving");
-      supabase.from("daily_logs").upsert({ user_id: session.user.id, log_date: todayKey, data: next }).then(({ error }) => {
-        if (error) {
-          setSyncState("error");
-          setNotice("Cloud sync paused. Your latest change is still saved in this browser.");
-        } else {
-          setSyncState("saved");
-          setLastSyncedAt(new Date());
-        }
+    if (!cloudReady.current) return;
+    setSyncState("saving");
+    post({ type: "day", date: todayKey, data: next })
+      .then(() => { setSyncState("saved"); setLastSyncedAt(new Date()); })
+      .catch(() => {
+        setSyncState("error");
+        setNotice("Cloud sync paused. Your change is saved in this browser.");
       });
-    }
-  }, [preview, logs, todayKey, session]);
+  }, [preview, logs, todayKey]);
 
   const startMission = useCallback(async (chosenStart = START_DATE) => {
     setPreview(false);
@@ -199,48 +155,30 @@ export function useMission() {
     setStartDate(chosenStart);
     window.localStorage.setItem(STORAGE.start, chosenStart);
     window.localStorage.setItem(STORAGE.started, "true");
-    if (supabase && session) {
-      setSyncState("saving");
-      const { error } = await supabase.from("profiles").upsert({ user_id: session.user.id, start_date: chosenStart, height_cm: 0, start_weight_kg: 0 });
-      setSyncState(error ? "error" : "saved");
-      if (!error) setLastSyncedAt(new Date());
-      if (error) setNotice("The challenge started here, but the cloud profile still needs to sync.");
-    }
-  }, [session]);
+    if (cloudReady.current) await post({ type: "profile", startDate: chosenStart }).catch(() => undefined);
+  }, []);
 
   const setJobOutcome = useCallback((date: string | null) => {
     setJobSecuredOn(date);
     if (date) window.localStorage.setItem(STORAGE.jobSecured, date);
     else window.localStorage.removeItem(STORAGE.jobSecured);
-    if (supabase && session) {
-      setSyncState("saving");
-      supabase.from("profiles").update({ job_secured_on: date }).eq("user_id", session.user.id).then(({ error }) => {
-        setSyncState(error ? "error" : "saved");
-        if (!error) setLastSyncedAt(new Date());
-      });
-    }
+    if (cloudReady.current) void post({ type: "profile", jobSecuredOn: date }).catch(() => undefined);
     setNotice(date ? "Career goal reached. Daily applications are now retired from your score." : "The job-search goal is active again.");
-  }, [session]);
+  }, []);
 
   const startInstagram = useCallback(() => {
     setInstagramStartedOn(todayKey);
     window.localStorage.setItem(STORAGE.instagramStarted, todayKey);
-    if (supabase && session) {
-      setSyncState("saving");
-      supabase.from("profiles").update({ instagram_started_on: todayKey }).eq("user_id", session.user.id).then(({ error }) => {
-        setSyncState(error ? "error" : "saved");
-        if (!error) setLastSyncedAt(new Date());
-      });
-    }
+    if (cloudReady.current) void post({ type: "profile", instagramStartedOn: todayKey }).catch(() => undefined);
     setNotice("Instagram is active from today. Earlier scores stay unchanged.");
-  }, [session, todayKey]);
+  }, [todayKey]);
 
   return {
     logs, setLogs, hydrated, missionDataError, preview, startDate, setStartDate,
     jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
-    notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady,
-    today, todayKey, start, end, dayNumber, daysRemaining, todayLog, linkTimedOut,
-    updateToday, startMission, setJobOutcome, startInstagram, workLocally,
+    notice, setNotice, syncState, setSyncState, lastSyncedAt,
+    today, todayKey, start, end, dayNumber, daysRemaining, todayLog,
+    updateToday, startMission, setJobOutcome, startInstagram,
   };
 }
 

@@ -22,9 +22,9 @@ Everything is optional. Missing keys degrade to a working local-only terminal.
 
 | Variable | Effect if absent |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Local storage only, no sign-in |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Local storage only, no sign-in |
-| `SUPABASE_SERVICE_ROLE_KEY` | Share links return 501 |
+| `NEXT_PUBLIC_SUPABASE_URL` | Local storage only, no cloud mirror |
+| `SUPABASE_SERVICE_ROLE_KEY` | Local storage only, no cloud mirror |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Share links cannot be read |
 | `OPENROUTER_API_KEY` | Alfred stays silent |
 | `OPENROUTER_MODEL` | Defaults to `anthropic/claude-3.5-haiku` |
 | `RESEND_API_KEY` | No nightly nudge |
@@ -43,6 +43,12 @@ never the record. Returning after silence triggers the return protocol once.
 
 **Two voices.** ORACLE is the system chrome — cold, operational, everywhere.
 ALFRED is one remark a day, generated from your actual numbers, cached per day.
+
+**No sign-in.** One operator, one terminal. The browser holds the authoritative
+copy in localStorage and mirrors it through `/api/mission`, which is the only
+thing that ever sees a database credential. The route is `noindex` and the
+deployment URL is the only access control — add Vercel deployment protection
+if that ever stops being enough.
 
 ## Layout
 

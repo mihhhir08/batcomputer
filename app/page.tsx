@@ -1,7 +1,6 @@
 "use client";
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase.ts";
 import { useMission } from "../lib/mission/useMission.ts";
 import { analyse } from "../lib/mission/analytics.ts";
 import { floorHeld, floorMetCount } from "../lib/mission/floor.ts";
@@ -12,7 +11,6 @@ import type { SignalKey } from "../lib/mission/signals.ts";
 import { DEFAULT_SECTOR, SECTORS, sectorAt, sectorForDigit, sectorIndex, type SectorId } from "../lib/sectors.ts";
 import { sound } from "../lib/audio/console.ts";
 
-import { SignIn } from "../components/SignIn.tsx";
 import { BootSequence } from "../components/shell/BootSequence.tsx";
 import { SectorRail } from "../components/shell/SectorRail.tsx";
 import { SectorViewport } from "../components/shell/SectorViewport.tsx";
@@ -34,9 +32,9 @@ export default function Terminal() {
   const {
     logs, setLogs, hydrated, missionDataError, preview, startDate, setStartDate,
     jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
-    notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady, linkTimedOut,
+    notice, setNotice, syncState, setSyncState, lastSyncedAt,
     today, todayKey, start, dayNumber, daysRemaining, todayLog,
-    updateToday, startMission, setJobOutcome, startInstagram, workLocally,
+    updateToday, startMission, setJobOutcome, startInstagram,
   } = mission;
 
   const [sector, setSector] = useState<SectorId>(DEFAULT_SECTOR);
@@ -58,8 +56,7 @@ export default function Terminal() {
   );
   const gap = useMemo(() => returnGap(logs, start, today), [logs, start, today]);
   const held = floorHeld(todayLog);
-  const bootReady = authReady && (!isSupabaseConfigured || !session || hydrated);
-  const authenticated = !isSupabaseConfigured || Boolean(session);
+  const bootReady = hydrated;
   const todayState = !logs[todayKey] ? "UNLOGGED" : logs[todayKey].closedAt ? "CLOSED" : "OPEN";
 
   useEffect(() => {
@@ -170,12 +167,11 @@ export default function Terminal() {
         setJobSecuredOn(backup.profile?.jobSecuredOn ?? jobSecuredOn);
         setInstagramStartedOn(backup.profile?.instagramStartedOn ?? instagramStartedOn);
         window.localStorage.setItem("momentum-90-logs", JSON.stringify(merged));
-        if (supabase && session) {
-          setSyncState("saving");
-          const rows = Object.entries(backup.logs).map(([log_date, data]) => ({ user_id: session.user.id, log_date, data }));
-          const result = rows.length ? await supabase.from("daily_logs").upsert(rows) : null;
-          setSyncState(result?.error ? "error" : "saved");
-        }
+        await fetch("/api/mission", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "bulk", logs: backup.logs }),
+        }).catch(() => undefined);
         setNotice("Backup merged. Dates absent from the file were preserved.");
       } catch {
         setNotice("Restore failed. Local mission data was left unchanged.");
@@ -237,7 +233,7 @@ export default function Terminal() {
   const boot = booting && (
     <div className={bootLeaving ? "boot-leaving" : undefined}>
       <BootSequence
-        ready={bootReady} authenticated={authenticated} hydrated={hydrated}
+        ready={bootReady} authenticated hydrated={hydrated}
         missionDataError={missionDataError} syncState={syncState}
         dayNumber={dayNumber} daysRemaining={daysRemaining} todayState={todayState}
         floorMet={floorMetCount(todayLog)} floorHeld={held} level={stats.level}
@@ -245,13 +241,6 @@ export default function Terminal() {
       />
     </div>
   );
-
-  // Only gate on the network while it is still plausibly coming back. Once it
-  // has timed out the terminal runs on the local record instead of a dead screen.
-  if (isSupabaseConfigured && !authReady && !linkTimedOut) {
-    return <>{boot}<main className="loading-shell" aria-hidden="true">Mounting mission database…</main></>;
-  }
-  if (isSupabaseConfigured && !session && !linkTimedOut) return <>{boot}<SignIn onSkip={workLocally} /></>;
 
   const dossierCategories = (["Audience", "Career", "Body", "Hair"] as GoalName[])
     .map((category) => ({ category, value: stats.categoryAverage(stats.recorded, category) }));
@@ -365,8 +354,6 @@ export default function Terminal() {
               startDate={startDate} dayNumber={dayNumber} logCount={Object.keys(logs).length}
               onBackup={() => downloadBackup(buildBackup(logs, { startDate, jobSecuredOn, instagramStartedOn }), todayKey)}
               onRestore={handleRestore}
-              onSignOut={() => supabase?.auth.signOut()}
-              signedIn={Boolean(session)}
               shareUrl={shareUrl} onShare={generateShare}
               onRevokeShare={() => { setShareUrl(null); setNotice("Share link revoked."); }}
               sharing={sharing}

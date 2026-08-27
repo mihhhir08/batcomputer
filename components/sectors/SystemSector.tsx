@@ -36,7 +36,7 @@ async function copyText(text: string) {
 
 export function SystemSector({
   syncState, lastSyncedAt, missionDataError, startDate, dayNumber, logCount,
-  onBackup, onRestore, onSignOut, signedIn, shareUrl, onShare, onRevokeShare, sharing,
+  onBackup, onRestore, shareUrl, onShare, onRevokeShare, sharing,
 }: {
   syncState: SyncState;
   lastSyncedAt: Date | null;
@@ -46,8 +46,6 @@ export function SystemSector({
   logCount: number;
   onBackup: () => void;
   onRestore: (event: ChangeEvent<HTMLInputElement>) => void;
-  onSignOut: () => void;
-  signedIn: boolean;
   shareUrl: string | null;
   onShare: () => void;
   onRevokeShare: () => void;
@@ -127,7 +125,6 @@ export function SystemSector({
           }}>
             AUDIO · {audioOn ? "ON" : "OFF"}
           </button>
-          {signedIn && <button type="button" className="ghost" onClick={onSignOut}>SIGN OUT</button>}
         </div>
       </section>
     </div>
