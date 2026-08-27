@@ -1,5 +1,5 @@
-import type { DayLog } from "./types.ts";
-import { xPostCount } from "./scoring.ts";
+import type { DayLog } from "./types";
+import { xPostCount } from "./scoring";
 
 // The floor is not the goal. It is the line under which a day stops counting.
 // It must stay clearable on your worst day, or it is just another ceiling.

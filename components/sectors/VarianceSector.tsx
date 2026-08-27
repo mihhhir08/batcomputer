@@ -1,6 +1,6 @@
 "use client";
 
-import { GOAL_COLORS, type GoalName } from "../../lib/mission/types.ts";
+import { GOAL_COLORS, type GoalName } from "../../lib/mission/types";
 
 export function VarianceSector({
   weeklyCategories, previousCategories, hasPreviousWeek, weeklyScore, previousScore,

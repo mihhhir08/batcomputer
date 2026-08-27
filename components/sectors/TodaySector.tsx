@@ -1,10 +1,10 @@
 "use client";
 
-import { Stepper } from "../ui/Stepper.tsx";
-import { sound } from "../../lib/audio/console.ts";
-import { floorChecks, floorHeld, STEP_FLOOR } from "../../lib/mission/floor.ts";
-import { careerIsActive, habitImpact, instagramIsActive, score, xPostCount } from "../../lib/mission/scoring.ts";
-import { CONTENT_VOLUME_START_DATE, HABITS, type BinaryKey, type DayLog } from "../../lib/mission/types.ts";
+import { Stepper } from "../ui/Stepper";
+import { sound } from "../../lib/audio/console";
+import { floorChecks, floorHeld, STEP_FLOOR } from "../../lib/mission/floor";
+import { careerIsActive, habitImpact, instagramIsActive, score, xPostCount } from "../../lib/mission/scoring";
+import { CONTENT_VOLUME_START_DATE, HABITS, type BinaryKey, type DayLog } from "../../lib/mission/types";
 
 /**
  * The only sector that writes. Floor items sit above the fold and are visually

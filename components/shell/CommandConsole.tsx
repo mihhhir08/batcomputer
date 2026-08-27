@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { sound } from "../../lib/audio/console.ts";
+import { sound } from "../../lib/audio/console";
 
 export type Command = { id: string; label: string; hint?: string; run: () => void };
 

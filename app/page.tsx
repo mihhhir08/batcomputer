@@ -1,29 +1,29 @@
 "use client";
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { useMission } from "../lib/mission/useMission.ts";
-import { analyse } from "../lib/mission/analytics.ts";
-import { floorHeld, floorMetCount } from "../lib/mission/floor.ts";
-import { returnGap } from "../lib/mission/gaps.ts";
-import { buildBackup, downloadBackup, parseBackup } from "../lib/mission/backup.ts";
-import type { GoalName } from "../lib/mission/types.ts";
-import type { SignalKey } from "../lib/mission/signals.ts";
-import { DEFAULT_SECTOR, SECTORS, sectorAt, sectorForDigit, sectorIndex, type SectorId } from "../lib/sectors.ts";
-import { sound } from "../lib/audio/console.ts";
+import { useMission } from "../lib/mission/useMission";
+import { analyse } from "../lib/mission/analytics";
+import { floorHeld, floorMetCount } from "../lib/mission/floor";
+import { returnGap } from "../lib/mission/gaps";
+import { buildBackup, downloadBackup, parseBackup } from "../lib/mission/backup";
+import type { GoalName } from "../lib/mission/types";
+import type { SignalKey } from "../lib/mission/signals";
+import { DEFAULT_SECTOR, SECTORS, sectorAt, sectorForDigit, sectorIndex, type SectorId } from "../lib/sectors";
+import { sound } from "../lib/audio/console";
 
-import { BootSequence } from "../components/shell/BootSequence.tsx";
-import { SectorRail } from "../components/shell/SectorRail.tsx";
-import { SectorViewport } from "../components/shell/SectorViewport.tsx";
-import { CommandConsole, type Command } from "../components/shell/CommandConsole.tsx";
-import { CommandSector } from "../components/sectors/CommandSector.tsx";
-import { TodaySector } from "../components/sectors/TodaySector.tsx";
-import { TrajectorySector } from "../components/sectors/TrajectorySector.tsx";
-import { SignalsSector } from "../components/sectors/SignalsSector.tsx";
-import { VarianceSector } from "../components/sectors/VarianceSector.tsx";
-import { BodySector } from "../components/sectors/BodySector.tsx";
-import { ArchiveSector } from "../components/sectors/ArchiveSector.tsx";
-import { DossierSector } from "../components/sectors/DossierSector.tsx";
-import { SystemSector } from "../components/sectors/SystemSector.tsx";
+import { BootSequence } from "../components/shell/BootSequence";
+import { SectorRail } from "../components/shell/SectorRail";
+import { SectorViewport } from "../components/shell/SectorViewport";
+import { CommandConsole, type Command } from "../components/shell/CommandConsole";
+import { CommandSector } from "../components/sectors/CommandSector";
+import { TodaySector } from "../components/sectors/TodaySector";
+import { TrajectorySector } from "../components/sectors/TrajectorySector";
+import { SignalsSector } from "../components/sectors/SignalsSector";
+import { VarianceSector } from "../components/sectors/VarianceSector";
+import { BodySector } from "../components/sectors/BodySector";
+import { ArchiveSector } from "../components/sectors/ArchiveSector";
+import { DossierSector } from "../components/sectors/DossierSector";
+import { SystemSector } from "../components/sectors/SystemSector";
 
 const GAP_ACK_KEY = "batcomputer-gap-ack";
 

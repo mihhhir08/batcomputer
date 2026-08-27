@@ -1,6 +1,6 @@
 "use client";
 
-import { useDecode } from "../../lib/motion/useDecode.ts";
+import { useDecode } from "../../lib/motion/useDecode";
 
 /**
  * Scrambled glyphs are decoration; assistive tech gets the settled string.

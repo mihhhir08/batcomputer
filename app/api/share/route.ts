@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { analyse } from "../../../lib/mission/analytics.ts";
-import { dateFromKey, missionToday } from "../../../lib/mission/dates.ts";
-import type { Logs } from "../../../lib/mission/types.ts";
+import { analyse } from "../../../lib/mission/analytics";
+import { dateFromKey, missionToday } from "../../../lib/mission/dates";
+import type { Logs } from "../../../lib/mission/types";
 
 // A share is a snapshot, not a live view. It is written once to its own table
 // and read by a route with no write path, so a friend physically cannot alter

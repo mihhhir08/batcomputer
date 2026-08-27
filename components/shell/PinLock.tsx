@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { sound, unlockAudio } from "../../lib/audio/console.ts";
+import { sound, unlockAudio } from "../../lib/audio/console";
 
 const LENGTH = 4;
 

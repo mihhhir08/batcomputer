@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { EMPTY_LOG, START_DATE } from "../lib/mission/types.ts";
-import { categoryScores, score } from "../lib/mission/scoring.ts";
-import { floorHeld, floorChecks } from "../lib/mission/floor.ts";
-import { findGaps, returnGap, runs, dayState } from "../lib/mission/gaps.ts";
-import { addDays, dateFromKey, dateKey } from "../lib/mission/dates.ts";
+import { EMPTY_LOG, START_DATE } from "../lib/mission/types";
+import { categoryScores, score } from "../lib/mission/scoring";
+import { floorHeld, floorChecks } from "../lib/mission/floor";
+import { findGaps, returnGap, runs, dayState } from "../lib/mission/gaps";
+import { addDays, dateFromKey, dateKey } from "../lib/mission/dates";
 
 // Scoring invariant: these are v1 outputs. If they move, history was rewritten.
 

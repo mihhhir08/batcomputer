@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { decodeFrame, decodeTicks } from "../lib/motion/decode.ts";
+import { decodeFrame, decodeTicks } from "../lib/motion/decode";
 
 const text = "MISSION DAY 21";
 

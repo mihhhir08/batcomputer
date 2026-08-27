@@ -1,5 +1,5 @@
-import { stripRetired } from "./demo.ts";
-import type { Logs } from "./types.ts";
+import { stripRetired } from "./demo";
+import type { Logs } from "./types";
 
 export type Backup = {
   version: 1;

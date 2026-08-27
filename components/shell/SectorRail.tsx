@@ -1,6 +1,6 @@
 "use client";
 
-import { SECTORS, type SectorId, sectorIndex } from "../../lib/sectors.ts";
+import { SECTORS, type SectorId, sectorIndex } from "../../lib/sectors";
 
 /**
  * The marker is one element that travels, not nine that light up. The rail

@@ -1,11 +1,11 @@
 "use client";
 
-import { Decode } from "../shell/Decode.tsx";
-import { sound } from "../../lib/audio/console.ts";
-import { addDays, dateKey } from "../../lib/mission/dates.ts";
-import { runs } from "../../lib/mission/gaps.ts";
-import { signalCatalog, type SignalKey } from "../../lib/mission/signals.ts";
-import { EMPTY_LOG, type Logs } from "../../lib/mission/types.ts";
+import { Decode } from "../shell/Decode";
+import { sound } from "../../lib/audio/console";
+import { addDays, dateKey } from "../../lib/mission/dates";
+import { runs } from "../../lib/mission/gaps";
+import { signalCatalog, type SignalKey } from "../../lib/mission/signals";
+import { EMPTY_LOG, type Logs } from "../../lib/mission/types";
 
 /**
  * Interrogation. Choosing a signal reorganises the whole sector around it

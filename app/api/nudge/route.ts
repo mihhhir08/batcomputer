@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { floorChecks, floorHeld } from "../../../lib/mission/floor.ts";
-import { dateFromKey, dateKey, missionToday } from "../../../lib/mission/dates.ts";
-import { EMPTY_LOG, START_DATE, type DayLog } from "../../../lib/mission/types.ts";
+import { floorChecks, floorHeld } from "../../../lib/mission/floor";
+import { dateFromKey, dateKey, missionToday } from "../../../lib/mission/dates";
+import { EMPTY_LOG, START_DATE, type DayLog } from "../../../lib/mission/types";
 
 // The cue. v1 had none, which is most of why it was abandoned: a dashboard you
 // have to remember to open is a dashboard you stop opening.

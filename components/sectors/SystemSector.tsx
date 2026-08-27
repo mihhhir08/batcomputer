@@ -1,8 +1,8 @@
 "use client";
 
 import { type ChangeEvent, useState } from "react";
-import { isAudioEnabled, setAudioEnabled, sound } from "../../lib/audio/console.ts";
-import type { SyncState } from "../../lib/mission/types.ts";
+import { isAudioEnabled, setAudioEnabled, sound } from "../../lib/audio/console";
+import type { SyncState } from "../../lib/mission/types";
 
 const LINK_STATE: Record<SyncState, { text: string; tone: string }> = {
   saved: { text: "LINK ESTABLISHED", tone: "ok" },

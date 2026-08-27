@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { sound } from "../../lib/audio/console.ts";
-import { addDays, dateFromKey, dateKey } from "../../lib/mission/dates.ts";
-import { dayState } from "../../lib/mission/gaps.ts";
-import { floorChecks, floorHeld } from "../../lib/mission/floor.ts";
-import { score } from "../../lib/mission/scoring.ts";
-import { EMPTY_LOG, type Logs } from "../../lib/mission/types.ts";
+import { sound } from "../../lib/audio/console";
+import { addDays, dateFromKey, dateKey } from "../../lib/mission/dates";
+import { dayState } from "../../lib/mission/gaps";
+import { floorChecks, floorHeld } from "../../lib/mission/floor";
+import { score } from "../../lib/mission/scoring";
+import { EMPTY_LOG, type Logs } from "../../lib/mission/types";
 
 /** The 90-day record. Every cell opens without leaving the sector. */
 export function ArchiveSector({ logs, start, todayKey, jobSecuredOn, instagramStartedOn }: {

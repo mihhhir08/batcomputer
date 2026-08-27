@@ -1,6 +1,6 @@
 "use client";
 
-import { sound } from "../../lib/audio/console.ts";
+import { sound } from "../../lib/audio/console";
 
 /** Direct entry. The number is the truth; the buttons are just faster. */
 export function Stepper({ label, value, step, unit, complete, onChange }: {

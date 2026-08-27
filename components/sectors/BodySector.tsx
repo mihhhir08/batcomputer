@@ -1,7 +1,7 @@
 "use client";
 
-import { Stepper } from "../ui/Stepper.tsx";
-import type { DayLog } from "../../lib/mission/types.ts";
+import { Stepper } from "../ui/Stepper";
+import type { DayLog } from "../../lib/mission/types";
 
 const START_WEIGHT = 0;
 const GOAL_LOW = 0;

@@ -1,8 +1,8 @@
 "use client";
 
-import { dateKey } from "../../lib/mission/dates.ts";
-import { categoryScores } from "../../lib/mission/scoring.ts";
-import { GOAL_COLORS, type Logs } from "../../lib/mission/types.ts";
+import { dateKey } from "../../lib/mission/dates";
+import { categoryScores } from "../../lib/mission/scoring";
+import { GOAL_COLORS, type Logs } from "../../lib/mission/types";
 
 type Point = { x: number; y: number };
 type Observation = { index: number; value: number };

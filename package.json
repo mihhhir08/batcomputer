@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node tests/mission.test.ts && node tests/decode.test.ts && node scripts/audit-css.mjs && next build",
+    "test": "node --import ./tests/resolve.mjs tests/mission.test.ts && node --import ./tests/resolve.mjs tests/decode.test.ts && node scripts/audit-css.mjs && next build",
     "lint": "eslint . --ignore-pattern .next",
     "audit:css": "node scripts/audit-css.mjs"
   },

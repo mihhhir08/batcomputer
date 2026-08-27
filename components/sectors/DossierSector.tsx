@@ -1,7 +1,7 @@
 "use client";
 
-import { addDays } from "../../lib/mission/dates.ts";
-import type { GoalName } from "../../lib/mission/types.ts";
+import { addDays } from "../../lib/mission/dates";
+import type { GoalName } from "../../lib/mission/types";
 
 const GATES = [
   { day: 1, label: "Begin" }, { day: 10, label: "Proof" }, { day: 25, label: "Rhythm" },

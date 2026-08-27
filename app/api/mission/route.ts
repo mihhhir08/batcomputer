@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { stripRetired } from "../../../lib/mission/demo.ts";
-import { START_DATE, type Logs } from "../../../lib/mission/types.ts";
-import { hasClearance } from "../../../lib/clearance.ts";
+import { stripRetired } from "../../../lib/mission/demo";
+import { START_DATE, type Logs } from "../../../lib/mission/types";
+import { hasClearance } from "../../../lib/clearance";
 
 // Single-operator terminal. There is no sign-in: the browser never holds a
 // Supabase key, and this route talks to the database with the service role.

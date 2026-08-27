@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEMO_LOGS, STORAGE, stripRetired } from "./demo.ts";
-import { addDays, dateFromKey, dateKey, missionToday } from "./dates.ts";
-import { EMPTY_LOG, START_DATE, type DayLog, type Logs, type SyncState } from "./types.ts";
+import { DEMO_LOGS, STORAGE, stripRetired } from "./demo";
+import { addDays, dateFromKey, dateKey, missionToday } from "./dates";
+import { EMPTY_LOG, START_DATE, type DayLog, type Logs, type SyncState } from "./types";
 
 // No sign-in. This is a single-operator terminal, so the browser keeps the
 // authoritative copy in localStorage and mirrors it through /api/mission,

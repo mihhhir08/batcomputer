@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DECODE_MS, DECODE_TICK_MS, decodeFrame } from "./decode.ts";
+import { DECODE_MS, DECODE_TICK_MS, decodeFrame } from "./decode";
 
 export function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);

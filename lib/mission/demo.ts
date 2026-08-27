@@ -1,4 +1,4 @@
-import { EMPTY_LOG, type Logs } from "./types.ts";
+import { EMPTY_LOG, type Logs } from "./types";
 
 /** Shown only before the mission is started, so the terminal is never empty. */
 export const DEMO_LOGS: Logs = {

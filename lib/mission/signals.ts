@@ -1,6 +1,6 @@
-import { categoryScores, score, xPostCount } from "./scoring.ts";
-import { STEP_FLOOR, published } from "./floor.ts";
-import type { BinaryKey, DayLog, GoalName } from "./types.ts";
+import { categoryScores, score, xPostCount } from "./scoring";
+import { STEP_FLOOR, published } from "./floor";
+import type { BinaryKey, DayLog, GoalName } from "./types";
 
 export type SignalKey =
   | BinaryKey | "xPosts" | "jobs" | "steps" | "water" | "weight"

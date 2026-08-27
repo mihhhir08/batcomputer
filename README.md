@@ -12,9 +12,11 @@ npm run dev
 Tests run without a browser or a build:
 
 ```bash
-node tests/mission.test.ts
-node tests/decode.test.ts
+npm test
 ```
+
+The suites run under plain `node` via a small resolver hook, so source imports
+stay extensionless and nothing unusual sits in the deployment path.
 
 ## Environment
 

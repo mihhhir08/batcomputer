@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { SECTORS, type SectorId, sectorIndex } from "../../lib/sectors.ts";
-import { usePrefersReducedMotion } from "../../lib/motion/useDecode.ts";
-import { Decode } from "./Decode.tsx";
+import { SECTORS, type SectorId, sectorIndex } from "../../lib/sectors";
+import { usePrefersReducedMotion } from "../../lib/motion/useDecode";
+import { Decode } from "./Decode";
 
 const DISSOLVE_MS = 130;
 

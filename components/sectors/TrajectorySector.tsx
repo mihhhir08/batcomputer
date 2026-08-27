@@ -1,9 +1,9 @@
 "use client";
 
-import { TrendChart } from "../charts/TrendChart.tsx";
-import { sound } from "../../lib/audio/console.ts";
-import { addDays } from "../../lib/mission/dates.ts";
-import type { Logs } from "../../lib/mission/types.ts";
+import { TrendChart } from "../charts/TrendChart";
+import { sound } from "../../lib/audio/console";
+import { addDays } from "../../lib/mission/dates";
+import type { Logs } from "../../lib/mission/types";
 
 export function TrajectorySector({
   logs, today, dayNumber, range, onRange, jobSecuredOn, instagramStartedOn, weeklyScore, challengeScore, floorDays,

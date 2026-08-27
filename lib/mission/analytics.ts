@@ -1,8 +1,8 @@
-import { addDays, dateKey, daysBetween } from "./dates.ts";
-import { average, categoryScores, dayXp, score } from "./scoring.ts";
-import { floorHeld } from "./floor.ts";
-import { runs } from "./gaps.ts";
-import { EMPTY_LOG, WELLNESS_START_DATE, type GoalName, type Logs } from "./types.ts";
+import { addDays, dateKey, daysBetween } from "./dates";
+import { average, categoryScores, dayXp, score } from "./scoring";
+import { floorHeld } from "./floor";
+import { runs } from "./gaps";
+import { EMPTY_LOG, WELLNESS_START_DATE, type GoalName, type Logs } from "./types";
 
 const GOALS: GoalName[] = ["Audience", "Career", "Body", "Hair"];
 

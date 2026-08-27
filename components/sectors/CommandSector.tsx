@@ -1,11 +1,11 @@
 "use client";
 
-import { useCountUp } from "../../lib/motion/useDecode.ts";
-import { Decode } from "../shell/Decode.tsx";
-import { floorChecks, floorHeld } from "../../lib/mission/floor.ts";
-import { score } from "../../lib/mission/scoring.ts";
-import type { Gap } from "../../lib/mission/gaps.ts";
-import type { DayLog } from "../../lib/mission/types.ts";
+import { useCountUp } from "../../lib/motion/useDecode";
+import { Decode } from "../shell/Decode";
+import { floorChecks, floorHeld } from "../../lib/mission/floor";
+import { score } from "../../lib/mission/scoring";
+import type { Gap } from "../../lib/mission/gaps";
+import type { DayLog } from "../../lib/mission/types";
 
 /**
  * The sector you land on. Answers three questions in order: does today count

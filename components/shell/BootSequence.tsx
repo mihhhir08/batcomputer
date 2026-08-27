@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Decode } from "./Decode.tsx";
-import { usePrefersReducedMotion } from "../../lib/motion/useDecode.ts";
-import { sound, startHum, unlockAudio } from "../../lib/audio/console.ts";
-import type { Gap } from "../../lib/mission/gaps.ts";
-import type { SyncState } from "../../lib/mission/types.ts";
-import { PinLock } from "./PinLock.tsx";
+import { Decode } from "./Decode";
+import { usePrefersReducedMotion } from "../../lib/motion/useDecode";
+import { sound, startHum, unlockAudio } from "../../lib/audio/console";
+import type { Gap } from "../../lib/mission/gaps";
+import type { SyncState } from "../../lib/mission/types";
+import { PinLock } from "./PinLock";
 
 type Check = { label: string; value: string; tone: "ok" | "pending" | "bad" };
 
