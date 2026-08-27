@@ -1,5 +1,6 @@
 @import "./terminal.css";
 @import "./sectors.css";
+@import "./boot.css";
 
 @font-face {
   font-family: "Momentum Sans";

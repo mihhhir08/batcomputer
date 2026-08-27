@@ -1,0 +1,128 @@
+/* The boot is the briefing. It gets the full display, warms like a tube, and
+   holds until you take control. */
+
+.boot {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px; padding: 40px 24px;
+  background: radial-gradient(ellipse 80% 60% at 50% 42%, #0b1c27 0, #010406 72%);
+  overflow: hidden;
+  animation: boot-power .5s ease-out;
+}
+
+/* Tube warm-up: a horizontal line that opens into a full raster. */
+@keyframes boot-power {
+  0%   { clip-path: inset(49.6% 0 49.6% 0); filter: brightness(2.4); }
+  55%  { clip-path: inset(0 0 0 0); filter: brightness(1.5); }
+  100% { clip-path: inset(0 0 0 0); filter: brightness(1); }
+}
+
+.boot-glass {
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.34) 2px 3px);
+  mix-blend-mode: multiply;
+}
+.boot::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 160px rgba(0,0,0,.9), inset 0 0 400px rgba(0,0,0,.6);
+}
+
+.boot-frame i { position: absolute; width: 26px; height: 26px; border: 1px solid var(--line-strong); }
+.boot-frame i:nth-child(1) { top: 22px; left: 22px; border-right: 0; border-bottom: 0; }
+.boot-frame i:nth-child(2) { top: 22px; right: 22px; border-left: 0; border-bottom: 0; }
+.boot-frame i:nth-child(3) { bottom: 22px; left: 22px; border-right: 0; border-top: 0; }
+.boot-frame i:nth-child(4) { bottom: 22px; right: 22px; border-left: 0; border-top: 0; }
+
+.boot-emblem { position: relative; opacity: 0; animation: boot-fade .7s ease-out .15s forwards; }
+.boot-emblem img { display: block; width: clamp(150px, 20vw, 210px); height: auto; }
+.boot-emblem-sweep {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 44%, color-mix(in srgb, var(--accent) 55%, transparent) 50%, transparent 56%);
+  animation: boot-sweep 2.4s ease-in-out infinite;
+}
+@keyframes boot-sweep { 0%, 100% { transform: translateY(-58%); opacity: 0; } 50% { transform: translateY(58%); opacity: 1; } }
+@keyframes boot-fade { to { opacity: 1; } }
+
+.boot-title { text-align: center; opacity: 0; animation: boot-fade .5s ease-out .35s forwards; }
+.boot-title h1 {
+  margin: 0; font-size: clamp(30px, 5vw, 54px); font-weight: 760;
+  letter-spacing: .12em; text-transform: uppercase; line-height: 1;
+  text-shadow: 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.boot-title p {
+  margin: 8px 0 0; color: var(--faint);
+  font-family: "Momentum Mono", monospace; font-size: 10px; letter-spacing: .3em;
+}
+
+.boot-checks {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 2px 26px; width: min(100%, 620px);
+}
+.boot-checks span {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px;
+  padding: 4px 0; opacity: 0; transform: translateY(3px);
+  transition: opacity .3s ease, transform .3s ease;
+  font-family: "Momentum Mono", monospace; font-size: 9.5px; letter-spacing: .12em;
+}
+.boot-checks span.shown { opacity: 1; transform: none; }
+.boot-checks b { color: var(--faint); font-weight: 500; }
+.boot-checks span > i { height: 1px; background: var(--line); }
+.boot-checks em { font-style: normal; }
+.boot-checks em.ok { color: var(--green); }
+.boot-checks em.pending { color: var(--amber); }
+.boot-checks em.bad { color: var(--danger); }
+
+.boot-briefing {
+  display: flex; gap: 1px; opacity: 0;
+  animation: boot-fade .5s ease-out 1.9s forwards;
+}
+.boot-briefing > div {
+  padding: 13px 22px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+  display: flex; flex-direction: column; gap: 3px; align-items: center;
+}
+.boot-briefing span { color: var(--faint); font-family: "Momentum Mono", monospace; font-size: 8.5px; letter-spacing: .18em; }
+.boot-briefing strong { font-family: "Momentum Mono", monospace; font-size: 26px; line-height: 1.1; }
+.boot-briefing em { color: var(--muted); font-family: "Momentum Mono", monospace; font-size: 9px; font-style: normal; letter-spacing: .1em; }
+.boot-floor.held strong { color: var(--green); text-shadow: 0 0 16px color-mix(in srgb, var(--green) 50%, transparent); }
+
+.boot-gap {
+  margin: 0; padding: 8px 16px; border-left: 2px solid var(--amber);
+  background: color-mix(in srgb, var(--amber) 9%, transparent);
+  color: var(--muted); font-family: "Momentum Mono", monospace; font-size: 10px; letter-spacing: .1em;
+  opacity: 0; animation: boot-fade .5s ease-out 2.1s forwards;
+}
+.boot-gap b { color: var(--amber); }
+
+.boot-alfred {
+  max-width: 66ch; margin: 0; text-align: center;
+  color: var(--muted); font-family: Georgia, serif; font-size: 15px; line-height: 1.6;
+  opacity: 0; animation: boot-fade .6s ease-out 2.4s forwards;
+}
+
+.boot-enter {
+  margin-top: 6px; padding: 9px 20px;
+  border: 1px solid var(--line-strong);
+  color: var(--faint);
+  font-family: "Momentum Mono", monospace; font-size: 10px; letter-spacing: .22em;
+}
+.boot-enter.ready {
+  border-color: var(--accent); color: var(--accent);
+  animation: boot-pulse 1.9s ease-in-out infinite;
+}
+@keyframes boot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 rgba(0,0,0,0); }
+  50% { opacity: .62; box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 26%, transparent); }
+}
+
+.boot-leaving { animation: boot-collapse .26s ease-in forwards; }
+@keyframes boot-collapse {
+  to { clip-path: inset(49.6% 0 49.6% 0); opacity: 0; filter: brightness(2.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot, .boot-emblem, .boot-title, .boot-briefing, .boot-gap, .boot-alfred { animation: none; opacity: 1; }
+  .boot-emblem-sweep, .boot-enter.ready { animation: none; }
+  .boot-checks span { opacity: 1; transform: none; }
+  .boot-leaving { animation: none; opacity: 0; }
+}
