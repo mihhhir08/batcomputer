@@ -1,9 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BATCOMPUTER — 90-Day Mission Control",
-  description: "A private tactical dashboard for tracking a 90-day body, career, audience, and consistency mission.",
+  title: "BATCOMPUTER",
+  description: "A private tactical terminal for a 90-day body, career, audience and consistency mission.",
+  appleWebApp: { capable: true, title: "BATCOMPUTER", statusBarStyle: "black-translucent" },
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#010406",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
