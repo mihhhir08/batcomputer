@@ -34,7 +34,7 @@ export default function Terminal() {
   const {
     logs, setLogs, hydrated, missionDataError, preview, startDate, setStartDate,
     jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
-    notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady,
+    notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady, linkTimedOut,
     today, todayKey, start, dayNumber, daysRemaining, todayLog,
     updateToday, startMission, setJobOutcome, startInstagram,
   } = mission;
@@ -241,8 +241,12 @@ export default function Terminal() {
     </div>
   );
 
-  if (isSupabaseConfigured && !authReady) return <>{boot}<main className="loading-shell" aria-hidden="true">Mounting mission database…</main></>;
-  if (isSupabaseConfigured && !session) return <>{boot}<SignIn /></>;
+  // Only gate on the network while it is still plausibly coming back. Once it
+  // has timed out the terminal runs on the local record instead of a dead screen.
+  if (isSupabaseConfigured && !authReady && !linkTimedOut) {
+    return <>{boot}<main className="loading-shell" aria-hidden="true">Mounting mission database…</main></>;
+  }
+  if (isSupabaseConfigured && !session && !linkTimedOut) return <>{boot}<SignIn /></>;
 
   const dossierCategories = (["Audience", "Career", "Body", "Hair"] as GoalName[])
     .map((category) => ({ category, value: stats.categoryAverage(stats.recorded, category) }));

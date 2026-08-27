@@ -25,38 +25,65 @@ export function useMission() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
 
-  useEffect(() => {
-    if (supabase) {
-      supabase.auth.getSession().then(({ data }) => {
-        setSession(data.session);
-        setAuthReady(true);
-      });
-      const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
-      return () => data.subscription.unsubscribe();
-    }
+  const [linkTimedOut, setLinkTimedOut] = useState(false);
+
+  const loadLocal = useCallback(() => {
     const saved = window.localStorage.getItem(STORAGE.logs);
     const savedStart = window.localStorage.getItem(STORAGE.start);
     const savedJob = window.localStorage.getItem(STORAGE.jobSecured);
     const savedInstagram = window.localStorage.getItem(STORAGE.instagramStarted);
-    queueMicrotask(() => {
-      if (savedStart) setStartDate(savedStart);
-      if (savedJob) setJobSecuredOn(savedJob);
-      if (savedInstagram) setInstagramStartedOn(savedInstagram);
-      if (saved) {
-        try {
-          setLogs(stripRetired(JSON.parse(saved)));
-          setPreview(false);
-        } catch {
-          setMissionDataError(true);
-          setPreview(false);
-          setNotice("Mission data could not be read safely. Restore a known-good backup; the stored browser copy has not been overwritten.");
-        }
-      } else {
-        setLogs(DEMO_LOGS);
+    if (savedStart) setStartDate(savedStart);
+    if (savedJob) setJobSecuredOn(savedJob);
+    if (savedInstagram) setInstagramStartedOn(savedInstagram);
+    if (saved) {
+      try {
+        setLogs(stripRetired(JSON.parse(saved)));
+        setPreview(false);
+      } catch {
+        setMissionDataError(true);
+        setPreview(false);
+        setNotice("Mission data could not be read safely. Restore a known-good backup; the stored browser copy has not been overwritten.");
       }
-      setHydrated(true);
-    });
+    } else {
+      setLogs(DEMO_LOGS);
+    }
+    setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      queueMicrotask(loadLocal);
+      return;
+    }
+    // A paused or unreachable project must not hold the terminal hostage.
+    // After this the app runs on the local record and says so.
+    const giveUp = window.setTimeout(() => {
+      setLinkTimedOut(true);
+      setAuthReady(true);
+      setSyncState("error");
+      setNotice("The cloud link did not answer. Running on this browser's record; your data is intact.");
+      loadLocal();
+    }, 6000);
+
+    supabase.auth.getSession().then(({ data }) => {
+      window.clearTimeout(giveUp);
+      setSession(data.session);
+      setAuthReady(true);
+      if (!data.session) loadLocal();
+    }).catch(() => {
+      window.clearTimeout(giveUp);
+      setLinkTimedOut(true);
+      setAuthReady(true);
+      setSyncState("error");
+      loadLocal();
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    return () => {
+      window.clearTimeout(giveUp);
+      data.subscription.unsubscribe();
+    };
+  }, [loadLocal]);
 
   useEffect(() => {
     if (!supabase || !session) return;
@@ -203,7 +230,7 @@ export function useMission() {
     logs, setLogs, hydrated, missionDataError, preview, startDate, setStartDate,
     jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
     notice, setNotice, syncState, setSyncState, lastSyncedAt, session, authReady,
-    today, todayKey, start, end, dayNumber, daysRemaining, todayLog,
+    today, todayKey, start, end, dayNumber, daysRemaining, todayLog, linkTimedOut,
     updateToday, startMission, setJobOutcome, startInstagram,
   };
 }
