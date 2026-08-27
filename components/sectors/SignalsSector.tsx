@@ -5,7 +5,7 @@ import { sound } from "../../lib/audio/console.ts";
 import { addDays, dateKey } from "../../lib/mission/dates.ts";
 import { runs } from "../../lib/mission/gaps.ts";
 import { signalCatalog, type SignalKey } from "../../lib/mission/signals.ts";
-import type { Logs } from "../../lib/mission/types.ts";
+import { EMPTY_LOG, type Logs } from "../../lib/mission/types.ts";
 
 /**
  * Interrogation. Choosing a signal reorganises the whole sector around it
@@ -58,7 +58,7 @@ export function SignalsSector({
         </header>
 
         <div className="signal-reading">
-          <strong>{signal.reading(logs[todayKey] ?? { ...logs[todayKey] } as never ?? undefined) || "—"}</strong>
+          <strong>{signal.reading(logs[todayKey] ?? EMPTY_LOG)}</strong>
           <em>TODAY</em>
         </div>
 
