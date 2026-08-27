@@ -49,27 +49,43 @@ export function BootSequence({
     return () => timers.forEach(window.clearTimeout);
   }, [reduced]);
 
+  // A briefing you cannot leave is a trap. After this, the boot releases
+  // whatever the backend is doing — the terminal still works offline.
+  const [released, setReleased] = useState(false);
+  useEffect(() => {
+    const deadline = window.setTimeout(() => setReleased(true), 6000);
+    return () => window.clearTimeout(deadline);
+  }, []);
+
+  const open = ready || released;
+
   // Enter on any key or click. Also the audio unlock gesture.
   useEffect(() => {
-    if (!ready) return;
     const enter = () => {
-      unlockAudio();
-      startHum();
-      sound.boot();
+      // Audio must never be able to block hand-over.
+      try {
+        unlockAudio();
+        startHum();
+        sound.boot();
+      } catch {
+        // no audio, no matter
+      }
       onEnter();
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // Escape always works, even mid-handshake, so nobody is ever stuck here.
+      if (!open && event.key !== "Escape") return;
       event.preventDefault();
       enter();
     };
     window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", enter);
+    if (open) window.addEventListener("pointerdown", enter);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("pointerdown", enter);
     };
-  }, [ready, onEnter]);
+  }, [open, onEnter]);
 
   const checks: Check[] = [
     { label: "POWER", value: "NOMINAL", tone: "ok" },
@@ -134,15 +150,22 @@ export function BootSequence({
 
       {alfred && <p className="boot-alfred">{alfred}</p>}
 
-      <footer className={ready ? "boot-enter ready" : "boot-enter"}>
+      <footer className={open ? "boot-enter ready" : "boot-enter"}>
         {missionDataError
           ? "USER ACTION REQUIRED"
-          : !ready
-            ? "STAND BY"
-            : authenticated
+          : open
+            ? authenticated
               ? "PRESS ANY KEY TO ASSUME CONTROL"
-              : "IDENTITY REQUIRED"}
+              : "PRESS ANY KEY · IDENTITY REQUIRED"
+            : "NEGOTIATING DATA LINK"}
       </footer>
+
+      {!open && <small className="boot-bypass">ESC TO BYPASS</small>}
+      {released && !ready && (
+        <small className="boot-bypass warn">
+          DATA LINK DID NOT ANSWER · CONTINUING ON LOCAL RECORD
+        </small>
+      )}
     </section>
   );
 }

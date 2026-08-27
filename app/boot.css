@@ -126,3 +126,10 @@
   .boot-checks span { opacity: 1; transform: none; }
   .boot-leaving { animation: none; opacity: 0; }
 }
+
+.boot-bypass {
+  color: var(--faint);
+  font-family: "Momentum Mono", monospace;
+  font-size: 9px; letter-spacing: .2em;
+}
+.boot-bypass.warn { color: var(--amber); }
