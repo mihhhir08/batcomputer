@@ -1,7 +1,8 @@
+import type { BinaryKey, DayLog, GoalName } from "./types.ts";
 import {
-  BinaryKey, CONTENT_VOLUME_START_DATE, DayLog, EMPTY_LOG, GoalName, HABITS,
+  CONTENT_VOLUME_START_DATE, EMPTY_LOG, HABITS,
   SKILL_GROWTH_START_DATE, WEIGHTED_SCORE_START_DATE, WELLNESS_START_DATE,
-} from "./types";
+} from "./types.ts";
 
 // INVARIANT: this file reproduces v1 scoring exactly. Every past day must
 // score identically forever. Change the presentation, never the arithmetic.

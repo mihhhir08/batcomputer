@@ -1,5 +1,5 @@
-import { addDays, dateKey, daysBetween } from "./dates";
-import { DayLog, Logs } from "./types";
+import { addDays, dateKey, daysBetween } from "./dates.ts";
+import type { DayLog, Logs } from "./types.ts";
 
 // v1 treated an unlogged day as a hole in the evidence and let it poison every
 // average and streak. v2 names it: OFF-GRID. Absence is a fact about life,
