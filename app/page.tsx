@@ -49,6 +49,7 @@ export default function Terminal() {
   const [alfredPending, setAlfredPending] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   const stats = useMemo(
     () => analyse(logs, start, today, jobSecuredOn, instagramStartedOn),
@@ -58,6 +59,14 @@ export default function Terminal() {
   const held = floorHeld(todayLog);
   const bootReady = hydrated;
   const todayState = !logs[todayKey] ? "UNLOGGED" : logs[todayKey].closedAt ? "CLOSED" : "OPEN";
+
+  // A PIN is optional; the terminal only locks when one is configured.
+  useEffect(() => {
+    fetch("/api/unlock")
+      .then((response) => response.json())
+      .then((data) => setLocked(Boolean(data?.required)))
+      .catch(() => setLocked(false));
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(new Date()), 30000);
@@ -238,6 +247,7 @@ export default function Terminal() {
         dayNumber={dayNumber} daysRemaining={daysRemaining} todayState={todayState}
         floorMet={floorMetCount(todayLog)} floorHeld={held} level={stats.level}
         gap={gap && !gapAcked ? gap : null} alfred={alfred} onEnter={finishBoot}
+        locked={locked} onCleared={() => { setLocked(false); finishBoot(); }}
       />
     </div>
   );

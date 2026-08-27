@@ -7,6 +7,7 @@ import { usePrefersReducedMotion } from "../../lib/motion/useDecode.ts";
 import { sound, startHum, unlockAudio } from "../../lib/audio/console.ts";
 import type { Gap } from "../../lib/mission/gaps.ts";
 import type { SyncState } from "../../lib/mission/types.ts";
+import { PinLock } from "./PinLock.tsx";
 
 type Check = { label: string; value: string; tone: "ok" | "pending" | "bad" };
 
@@ -34,6 +35,8 @@ export function BootSequence({
   gap: Gap | null;
   alfred: string | null;
   onEnter: () => void;
+  locked: boolean;
+  onCleared: () => void;
 }) {
   const reduced = usePrefersReducedMotion();
   const [stage, setStage] = useState(reduced ? 4 : 0);
@@ -57,7 +60,7 @@ export function BootSequence({
     return () => window.clearTimeout(deadline);
   }, []);
 
-  const open = ready || released;
+  const open = (ready || released) && !locked;
 
   // Enter on any key or click. Also the audio unlock gesture.
   useEffect(() => {
@@ -150,7 +153,9 @@ export function BootSequence({
 
       {alfred && <p className="boot-alfred">{alfred}</p>}
 
-      <footer className={open ? "boot-enter ready" : "boot-enter"}>
+      {locked && <PinLock onCleared={onCleared} />}
+
+      <footer className={open ? "boot-enter ready" : "boot-enter"} hidden={locked}>
         {missionDataError
           ? "USER ACTION REQUIRED"
           : open
@@ -160,7 +165,7 @@ export function BootSequence({
             : "NEGOTIATING DATA LINK"}
       </footer>
 
-      {!open && <small className="boot-bypass">ESC TO BYPASS</small>}
+      {!open && !locked && <small className="boot-bypass">ESC TO BYPASS</small>}
       {released && !ready && (
         <small className="boot-bypass warn">
           DATA LINK DID NOT ANSWER · CONTINUING ON LOCAL RECORD
