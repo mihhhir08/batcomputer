@@ -1,3 +1,5 @@
+@import "./terminal.css";
+
 @font-face {
   font-family: "Momentum Sans";
   src: url("/fonts/momentum-sans.woff2") format("woff2");

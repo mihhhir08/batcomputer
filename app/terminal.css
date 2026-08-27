@@ -1,0 +1,224 @@
+/* BATCOMPUTER v2 shell.
+   One viewport, nine sectors, no page scroll. Everything here describes the
+   machine itself: the tube, the rail, the travel between sectors. Sector
+   content styling lives alongside in globals.css. */
+
+:root {
+  --rail-w: 138px;
+  --chrome-h: 30px;
+  --bezel: 14px;
+  --travel-ms: 130ms;
+  --resolve-ms: 420ms;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ---- the tube -------------------------------------------------------- */
+
+html, body { height: 100%; overflow: hidden; }
+html { scroll-behavior: auto; }
+
+.terminal {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  grid-template-rows: var(--chrome-h) 1fr;
+  height: 100dvh;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, #0e2230 0, transparent 70%),
+    var(--canvas);
+}
+
+/* Phosphor scan lines. Fixed to the glass, never to the content. */
+.terminal::before {
+  content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0 2px,
+    rgba(0, 0, 0, .28) 2px 3px
+  );
+  opacity: .5;
+  mix-blend-mode: multiply;
+}
+
+/* Tube curvature: darkening toward every edge, strongest in the corners. */
+.terminal::after {
+  content: ""; position: fixed; inset: 0; z-index: 41; pointer-events: none;
+  box-shadow:
+    inset 0 0 120px rgba(0, 0, 0, .85),
+    inset 0 0 300px rgba(0, 0, 0, .55);
+  background: radial-gradient(ellipse 90% 75% at 50% 50%, transparent 55%, rgba(0, 0, 0, .5) 100%);
+}
+
+/* A single scan bar crawling the height of the display, forever. */
+.tube-scan {
+  position: fixed; left: 0; right: 0; height: 180px; z-index: 39;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(120, 221, 235, .045), transparent);
+  animation: tube-crawl 7.5s linear infinite;
+}
+
+@keyframes tube-crawl {
+  from { transform: translateY(-190px); }
+  to   { transform: translateY(100dvh); }
+}
+
+/* ---- top chrome ------------------------------------------------------ */
+
+.terminal-chrome {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  font-family: "Momentum Mono", monospace;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint);
+}
+.terminal-chrome b { color: var(--muted); font-weight: 600; }
+.terminal-chrome .chrome-spacer { flex: 1; }
+.terminal-chrome .chrome-live { display: flex; align-items: center; gap: 7px; color: var(--accent); }
+.terminal-chrome .chrome-live i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+  animation: chrome-blink 2.4s steps(1) infinite;
+}
+@keyframes chrome-blink { 0%, 70% { opacity: 1; } 71%, 100% { opacity: .25; } }
+
+/* ---- sector rail ----------------------------------------------------- */
+
+.sector-rail {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 12px 0 14px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(to right, color-mix(in srgb, var(--paper) 96%, transparent), transparent);
+}
+
+.rail-brand { display: grid; place-items: center; height: 34px; margin-bottom: 12px; }
+.rail-pulse {
+  width: 7px; height: 7px; rotate: 45deg;
+  background: var(--faint);
+  transition: background .4s ease, box-shadow .4s ease;
+}
+.rail-pulse.held {
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green);
+  animation: rail-beat 3.2s ease-in-out infinite;
+}
+@keyframes rail-beat { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+
+.rail-track { position: relative; display: flex; flex-direction: column; }
+
+/* One marker that travels. Not nine that toggle. */
+.rail-marker {
+  position: absolute; left: 0; top: 0;
+  width: 2px; height: 30px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  transform: translateY(calc(var(--active-index) * 30px));
+  transition: transform 240ms cubic-bezier(.2, .9, .25, 1);
+}
+
+.rail-item, .rail-console {
+  display: flex; align-items: center; gap: 9px;
+  height: 30px; padding: 0 10px 0 13px;
+  border: 0; background: none; text-align: left;
+  color: var(--faint);
+  font-family: "Momentum Mono", monospace;
+  font-size: 10px; letter-spacing: .12em;
+  transition: color .18s ease, background .18s ease;
+}
+.rail-item:hover, .rail-console:hover { color: var(--muted); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.rail-item.active { color: var(--ink); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.rail-number { color: var(--line-strong); font-variant-numeric: tabular-nums; }
+.rail-item.active .rail-number { color: var(--accent); }
+.rail-console { margin-top: auto; border-top: 1px solid var(--line); padding-top: 0; height: 34px; }
+
+/* ---- viewport -------------------------------------------------------- */
+
+.sector-viewport {
+  position: relative;
+  display: flex; flex-direction: column;
+  min-height: 0;
+  padding: var(--bezel) clamp(16px, 2.4vw, 34px) 0;
+}
+
+/* Corner brackets: the frame of the active display area. */
+.sector-viewport::before,
+.sector-viewport::after {
+  content: ""; position: absolute; width: 16px; height: 16px; pointer-events: none;
+  border-color: var(--line-strong); border-style: solid; border-width: 0;
+}
+.sector-viewport::before { top: 6px; left: 8px; border-top-width: 1px; border-left-width: 1px; }
+.sector-viewport::after { bottom: 6px; right: 8px; border-bottom-width: 1px; border-right-width: 1px; }
+
+.sector-head { position: relative; flex: 0 0 auto; padding-bottom: 12px; }
+.sector-head h2 {
+  margin: 0;
+  font-family: "Momentum Sans", sans-serif;
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 760; letter-spacing: -.02em; line-height: 1;
+  text-transform: uppercase;
+}
+.sector-index {
+  position: absolute; top: 2px; right: 0;
+  color: var(--line-strong);
+  font-family: "Momentum Mono", monospace;
+  font-size: 44px; font-weight: 700; line-height: 1;
+  letter-spacing: -.04em;
+}
+.sector-caption {
+  display: block; margin-top: 6px;
+  color: var(--accent);
+  font-family: "Momentum Mono", monospace;
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+}
+.sector-rule {
+  display: block; height: 1px; margin-top: 11px;
+  background: linear-gradient(to right, var(--line-strong), var(--line) 40%, transparent);
+}
+
+/* The sector body is the only scrollable region in the app. */
+.sector-body {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding-bottom: var(--bezel);
+}
+
+/* ---- travel ---------------------------------------------------------- */
+
+.sector-body.phase-out {
+  opacity: 0;
+  filter: blur(1px);
+  transform: translateY(calc(var(--travel-dir, 1) * -6px));
+  transition: opacity var(--travel-ms) ease-in, filter var(--travel-ms), transform var(--travel-ms);
+}
+.sector-body.phase-in { animation: sector-resolve var(--resolve-ms) cubic-bezier(.2, .8, .3, 1); }
+
+@keyframes sector-resolve {
+  from { opacity: 0; transform: translateY(calc(var(--travel-dir, 1) * 8px)); filter: blur(2px); }
+  60%  { opacity: 1; filter: blur(0); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+:root[data-travel="up"] { --travel-dir: -1; }
+:root[data-travel="down"] { --travel-dir: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tube-scan { animation: none; opacity: .25; }
+  .rail-pulse.held, .terminal-chrome .chrome-live i { animation: none; }
+  .rail-marker { transition: none; }
+  .sector-body.phase-out, .sector-body.phase-in { animation: none; transition: none; opacity: 1; filter: none; transform: none; }
+}
+
+/* Narrow displays drop the rail labels rather than the rail. */
+@media (max-width: 900px) {
+  :root { --rail-w: 46px; }
+  .rail-label { display: none; }
+  .rail-item, .rail-console { justify-content: center; padding: 0; }
+}
