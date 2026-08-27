@@ -50,3 +50,17 @@ create policy "Users update their progress photos" on storage.objects
 create policy "Users delete their progress photos" on storage.objects
   for delete to authenticated
   using (bucket_id = 'progress-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- v2: read-only shared dossiers. Snapshots only, never a view onto daily_logs.
+create table if not exists public.shared_dossiers (
+  token text primary key,
+  snapshot jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.shared_dossiers enable row level security;
+
+-- Anyone holding a token may read the snapshot. Nobody may write through the
+-- anon key; inserts happen only via the service role in /api/share.
+create policy "Shared dossiers are publicly readable"
+  on public.shared_dossiers for select using (true);
