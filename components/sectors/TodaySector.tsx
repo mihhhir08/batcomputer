@@ -2,83 +2,71 @@
 
 import { Stepper } from "../ui/Stepper";
 import { sound } from "../../lib/audio/console";
-import { floorChecks, floorHeld, STEP_FLOOR } from "../../lib/mission/floor";
-import { careerIsActive, habitImpact, instagramIsActive, score, xPostCount } from "../../lib/mission/scoring";
-import { CONTENT_VOLUME_START_DATE, HABITS, type BinaryKey, type DayLog } from "../../lib/mission/types";
+import { FLOOR, floorAt, floorHeld, floorMetCount } from "../../lib/mission/floor";
+import { SCORED, amount, complete, fmt, score, targetOf } from "../../lib/mission/scoring";
+import type { DayLog, SignalConfig } from "../../lib/mission/types";
+
+function hint(signal: SignalConfig) {
+  if (signal.note) return signal.note;
+  if (signal.type === "check") return "Daily";
+  const unit = signal.unit ?? "";
+  const full = `${fmt(targetOf(signal))} ${unit}`.trim();
+  return signal.floor && floorAt(signal) < targetOf(signal)
+    ? `${fmt(floorAt(signal))} clears the floor · ${full} earns full points`
+    : `Target · ${full}`;
+}
 
 /**
- * The only sector that writes. Floor items sit above the fold and are visually
- * separated from everything else, because clearing three things is the job and
- * the remaining twelve are optional.
+ * The only sector that writes. Floor signals sit above the fold and are
+ * visually separated from everything else, because clearing them is the job
+ * and the rest is optional. Both lists come from mission.config.ts.
  */
-export function TodaySector({
-  todayLog, todayKey, jobSecuredOn, instagramStartedOn, updateToday, onStartInstagram,
-}: {
+export function TodaySector({ todayLog, updateToday }: {
   todayLog: DayLog;
-  todayKey: string;
-  jobSecuredOn: string | null;
-  instagramStartedOn: string | null;
   updateToday: (patch: Partial<DayLog>) => void;
-  onStartInstagram: () => void;
 }) {
-  const instagramActive = instagramIsActive(todayKey, instagramStartedOn);
-  const careerActive = careerIsActive(todayKey, jobSecuredOn);
-  const volumeActive = todayKey >= CONTENT_VOLUME_START_DATE;
-  const posts = xPostCount(todayLog);
   const held = floorHeld(todayLog);
-  const todayScore = score(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
+  const todayScore = score(todayLog);
 
-  const wasHeld = floorHeld(todayLog);
-  function toggle(key: BinaryKey) {
-    const next = { ...todayLog, [key]: !todayLog[key] };
-    updateToday({ [key]: !todayLog[key] });
-    if (!wasHeld && floorHeld(next)) sound.floorHeld();
-    else sound.commit();
-  }
-
-  function setNumber(patch: Partial<DayLog>) {
-    const next = { ...todayLog, ...patch };
+  function write(patch: Partial<DayLog>, quiet = false) {
     updateToday(patch);
-    if (!wasHeld && floorHeld(next)) sound.floorHeld();
+    if (!held && floorHeld({ ...todayLog, ...patch })) sound.floorHeld();
+    else if (!quiet) sound.commit();
   }
 
-  const bonusHabits = HABITS.filter((habit) =>
-    habit.key !== "scalpMassage" && (habit.key !== "instagram" || instagramActive));
+  function row(signal: SignalConfig) {
+    const value = amount(todayLog, signal.key);
+    const impact = `${signal.goal} · ${signal.points ?? 0} pts`;
+
+    if (signal.type === "check") {
+      return (
+        <label key={signal.key} className={value ? "queue-row check met" : "queue-row check"}>
+          <input type="checkbox" checked={Boolean(value)} onChange={() => write({ [signal.key]: !value })} />
+          <span className="queue-mark" aria-hidden="true" />
+          <span className="queue-copy"><strong>{signal.label}</strong><small>{hint(signal)}</small></span>
+          <span className="queue-impact">{impact}</span>
+        </label>
+      );
+    }
+
+    const met = signal.floor ? value >= floorAt(signal) : complete(todayLog, signal);
+    return (
+      <div key={signal.key} className={met ? "queue-row met" : "queue-row"}>
+        <span className="queue-copy"><strong>{signal.label}</strong><small>{hint(signal)} · {impact}</small></span>
+        <Stepper label={`${signal.label} today`} value={value} step={signal.step ?? 1} unit={signal.unit ?? ""}
+          complete={complete(todayLog, signal)} onChange={(next) => write({ [signal.key]: next }, true)} />
+      </div>
+    );
+  }
 
   return (
     <div className="today-sector">
       <section className={held ? "queue-block floor-block held" : "queue-block floor-block"}>
         <header>
           <span className="console-label">NON-NEGOTIABLE / THE FLOOR</span>
-          <strong>{held ? "HELD" : `${floorChecks(todayLog).filter((c) => c.met).length}/3`}</strong>
+          <strong>{held ? "HELD" : `${floorMetCount(todayLog)}/${FLOOR.length}`}</strong>
         </header>
-
-        <div className={todayLog.steps >= STEP_FLOOR ? "queue-row met" : "queue-row"}>
-          <span className="queue-copy">
-            <strong>Movement</strong>
-            <small>{STEP_FLOOR.toLocaleString("en-CA")} steps</small>
-          </span>
-          <Stepper label="steps today" value={todayLog.steps} step={500} unit="steps"
-            complete={todayLog.steps >= STEP_FLOOR} onChange={(steps) => setNumber({ steps })} />
-        </div>
-
-        {volumeActive && (
-          <div className={posts > 0 ? "queue-row met" : "queue-row"}>
-            <span className="queue-copy">
-              <strong>Distribution · X</strong>
-              <small>One post clears the floor · 15 earns full points</small>
-            </span>
-            <Stepper label="X posts today" value={posts} step={1} unit="posts"
-              complete={posts >= 15} onChange={(xPosts) => setNumber({ xPosts, x: xPosts > 0 })} />
-          </div>
-        )}
-
-        <label className={todayLog.scalpMassage ? "queue-row check met" : "queue-row check"}>
-          <input type="checkbox" checked={todayLog.scalpMassage} onChange={() => toggle("scalpMassage")} />
-          <span className="queue-mark" aria-hidden="true" />
-          <span className="queue-copy"><strong>Recovery</strong><small>Scalp massage</small></span>
-          <span className="queue-impact">Hair · 10 pts</span>
-        </label>
+        {FLOOR.map(row)}
       </section>
 
       <section className="queue-block">
@@ -86,49 +74,7 @@ export function TodaySector({
           <span className="console-label">BEYOND THE FLOOR / OPTIONAL</span>
           <strong>{todayScore}<small>/100</small></strong>
         </header>
-
-        {bonusHabits.map((habit) => (
-          <label key={habit.key} className={todayLog[habit.key] ? "queue-row check met" : "queue-row check"}>
-            <input type="checkbox" checked={todayLog[habit.key]} onChange={() => toggle(habit.key)} />
-            <span className="queue-mark" aria-hidden="true" />
-            <span className="queue-copy"><strong>{habit.label}</strong><small>{habit.note}</small></span>
-            <span className="queue-impact">{habit.group} · {habitImpact(habit.key, instagramActive, careerActive)} pts</span>
-          </label>
-        ))}
-
-        {!instagramActive && (
-          <div className="queue-row upcoming">
-            <span className="queue-copy"><strong>Instagram</strong><small>Not yet activated</small></span>
-            <button type="button" onClick={onStartInstagram}>ACTIVATE</button>
-          </div>
-        )}
-
-        {careerActive && (
-          <div className={todayLog.jobs >= 10 ? "queue-row met" : "queue-row"}>
-            <span className="queue-copy"><strong>Job applications</strong><small>Target · 10</small></span>
-            <Stepper label="applications today" value={todayLog.jobs} step={1} unit="sent"
-              complete={todayLog.jobs >= 10} onChange={(jobs) => setNumber({ jobs })} />
-          </div>
-        )}
-
-        <div className={(todayLog.water ?? 0) >= 3 ? "queue-row met" : "queue-row"}>
-          <span className="queue-copy"><strong>Water</strong><small>3 L earns full points</small></span>
-          <Stepper label="water in litres" value={todayLog.water ?? 0} step={0.25} unit="L"
-            complete={(todayLog.water ?? 0) >= 3} onChange={(water) => setNumber({ water })} />
-        </div>
-
-        {!todayLog.recovery && (
-          <button type="button" className="plan-recovery"
-            onClick={() => { updateToday({ recovery: true, strength: false }); sound.commit(); }}>
-            PLAN STRENGTH RECOVERY · protects the body points
-          </button>
-        )}
-        {todayLog.recovery && (
-          <div className="queue-row recovery">
-            <span className="queue-copy"><strong>Recovery day</strong><small>Strength points protected</small></span>
-            <button type="button" onClick={() => { updateToday({ recovery: false }); sound.toggle(); }}>RESTORE</button>
-          </div>
-        )}
+        {SCORED.filter((signal) => !signal.floor).map(row)}
       </section>
 
       <div className={todayLog.closedAt ? "close-bar closed" : "close-bar"}>
