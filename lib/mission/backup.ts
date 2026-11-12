@@ -1,10 +1,9 @@
-import { stripRetired } from "./demo";
 import type { Logs } from "./types";
 
 export type Backup = {
   version: 1;
   exportedAt: string;
-  profile: { startDate: string; jobSecuredOn: string | null; instagramStartedOn: string | null };
+  profile: { startDate: string };
   logs: Logs;
 };
 
@@ -24,8 +23,9 @@ export function downloadBackup(backup: Backup, todayKey: string) {
 /** Throws on anything that is not a v1 backup, so a bad file cannot merge. */
 export function parseBackup(raw: string): Backup {
   const parsed = JSON.parse(raw) as Partial<Backup>;
-  if (parsed.version !== 1 || !parsed.logs || Array.isArray(parsed.logs)) {
+  const days = parsed.logs && typeof parsed.logs === "object" && !Array.isArray(parsed.logs) ? Object.values(parsed.logs) : null;
+  if (parsed.version !== 1 || !days || days.some((day) => !day || typeof day !== "object" || Array.isArray(day))) {
     throw new Error("Not a version 1 BATCOMPUTER backup");
   }
-  return { ...parsed, logs: stripRetired(parsed.logs) } as Backup;
+  return parsed as Backup;
 }
