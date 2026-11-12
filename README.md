@@ -30,7 +30,7 @@ forgives the days life got in the way.
 You need Node.js 22.13 or newer.
 
 ```bash
-git clone https://github.com/mihhhir08/momentum-90.git batcomputer
+git clone https://github.com/mihhhir08/batcomputer.git
 cd batcomputer
 npm install
 npm run dev
@@ -259,7 +259,7 @@ It contains scores only. Measures and per-signal detail are never included.
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mihhhir08/momentum-90)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mihhhir08/batcomputer)
 
 1. Fork this repo and edit `mission.config.ts`.
 2. Import your fork at [vercel.com/new](https://vercel.com/new).
@@ -290,7 +290,7 @@ protection, turn on your host's own access control, such as Vercel Deployment
 Protection.
 
 Found a security problem? Please open a private
-[security advisory](https://github.com/mihhhir08/momentum-90/security/advisories/new)
+[security advisory](https://github.com/mihhhir08/batcomputer/security/advisories/new)
 rather than a public issue.
 
 ## Backups
