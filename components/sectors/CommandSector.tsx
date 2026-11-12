@@ -6,20 +6,18 @@ import { floorChecks, floorHeld } from "../../lib/mission/floor";
 import { score } from "../../lib/mission/scoring";
 import type { Gap } from "../../lib/mission/gaps";
 import type { DayLog } from "../../lib/mission/types";
+import { mission } from "../../mission.config";
 
 /**
  * The sector you land on. Answers three questions in order: does today count
  * yet, what did the machine notice, and how far through the mission are you.
  */
 export function CommandSector({
-  todayLog, todayKey, jobSecuredOn, instagramStartedOn, dayNumber, daysRemaining,
+  todayLog, dayNumber, daysRemaining,
   level, xp, nextLevelXp, gap, gapAcknowledged, onAcknowledgeGap, alfred, alfredPending,
   longestFloorRun, currentFloorRun, onOpenToday,
 }: {
   todayLog: DayLog;
-  todayKey: string;
-  jobSecuredOn: string | null;
-  instagramStartedOn: string | null;
   dayNumber: number;
   daysRemaining: number;
   level: number;
@@ -37,7 +35,7 @@ export function CommandSector({
   const checks = floorChecks(todayLog);
   const held = floorHeld(todayLog);
   const met = checks.filter((check) => check.met).length;
-  const todayScore = score(todayLog, todayKey, jobSecuredOn, instagramStartedOn);
+  const todayScore = score(todayLog);
   const shownScore = Math.round(useCountUp(todayScore));
 
   return (
@@ -62,7 +60,7 @@ export function CommandSector({
           <header>
             <span className="console-label">TODAY / MINIMUM VIABLE DAY</span>
             <strong className={held ? "floor-verdict held" : "floor-verdict"}>
-              <Decode text={held ? "DAY SECURED" : `${met} OF 3 HELD`} />
+              <Decode text={held ? "DAY SECURED" : `${met} OF ${checks.length} HELD`} />
             </strong>
           </header>
           <ul className="floor-checks">
@@ -108,7 +106,7 @@ export function CommandSector({
         {alfredPending && !alfred && <p className="alfred-pending">Composing.</p>}
         {alfred && <p className="alfred-line">{alfred}</p>}
         {!alfred && !alfredPending && (
-          <p className="alfred-pending">No remark today, sir. The record speaks plainly enough.</p>
+          <p className="alfred-pending">No remark today, {mission.honorific}. The record speaks plainly enough.</p>
         )}
       </section>
     </div>

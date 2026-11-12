@@ -3,6 +3,7 @@
 import { type ChangeEvent, useState } from "react";
 import { isAudioEnabled, setAudioEnabled, sound } from "../../lib/audio/console";
 import type { SyncState } from "../../lib/mission/types";
+import { mission } from "../../mission.config";
 
 const LINK_STATE: Record<SyncState, { text: string; tone: string }> = {
   saved: { text: "LINK ESTABLISHED", tone: "ok" },
@@ -61,7 +62,7 @@ export function SystemSector({
         <span className="console-label">DATA LINK</span>
         <strong>{link.text}</strong>
         <small>
-          {lastSyncedAt ? `Last verified ${lastSyncedAt.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit" })}` : "Not yet verified this session"}
+          {lastSyncedAt ? `Last verified ${lastSyncedAt.toLocaleTimeString(mission.locale, { hour: "2-digit", minute: "2-digit" })}` : "Not yet verified this session"}
         </small>
         {missionDataError && <p className="system-alert">Mission data could not be read safely. Restore a known-good backup; nothing has been overwritten.</p>}
       </section>
@@ -70,7 +71,7 @@ export function SystemSector({
         <span className="console-label">OPERATION</span>
         <dl className="readout-strip wide">
           <div><dt>START</dt><dd>{startDate}</dd></div>
-          <div><dt>DAY</dt><dd>{String(dayNumber).padStart(2, "0")}/90</dd></div>
+          <div><dt>DAY</dt><dd>{String(dayNumber).padStart(2, "0")}/{mission.days}</dd></div>
           <div><dt>RECORDS</dt><dd>{logCount}</dd></div>
         </dl>
       </section>
@@ -102,7 +103,7 @@ export function SystemSector({
                 });
               }}>{copied ? "COPIED" : "COPY"}</button>
             </div>
-            <small>Read-only. Body metrics are stripped. There is no write path on that route.</small>
+            <small>Read-only. Scores only: measures and per-signal detail are stripped. There is no write path on that route.</small>
             <button type="button" className="ghost" onClick={() => { onRevokeShare(); sound.deny(); }}>REVOKE ALL LINKS</button>
           </>
         ) : (
@@ -110,7 +111,7 @@ export function SystemSector({
             <button type="button" disabled={sharing} onClick={() => { onShare(); sound.commit(); }}>
               {sharing ? "GENERATING…" : "GENERATE READ-ONLY LINK"}
             </button>
-            <small>Creates a snapshot anyone with the link can read. Weight is never included.</small>
+            <small>Creates a snapshot anyone with the link can read. Measures are never included.</small>
           </>
         )}
       </section>

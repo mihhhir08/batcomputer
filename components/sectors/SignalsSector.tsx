@@ -4,7 +4,7 @@ import { Decode } from "../shell/Decode";
 import { sound } from "../../lib/audio/console";
 import { addDays, dateKey } from "../../lib/mission/dates";
 import { runs } from "../../lib/mission/gaps";
-import { signalCatalog, type SignalKey } from "../../lib/mission/signals";
+import { SIGNALS } from "../../lib/mission/signals";
 import { EMPTY_LOG, type Logs } from "../../lib/mission/types";
 
 /**
@@ -12,19 +12,17 @@ import { EMPTY_LOG, type Logs } from "../../lib/mission/types";
  * rather than updating a widget in the corner.
  */
 export function SignalsSector({
-  logs, start, today, todayKey, selected, onSelect, jobSecuredOn, instagramStartedOn, dayNumber,
+  logs, start, today, todayKey, selected, onSelect, dayNumber,
 }: {
   logs: Logs;
   start: Date;
   today: Date;
   todayKey: string;
-  selected: SignalKey;
-  onSelect: (key: SignalKey) => void;
-  jobSecuredOn: string | null;
-  instagramStartedOn: string | null;
+  selected: string;
+  onSelect: (key: string) => void;
   dayNumber: number;
 }) {
-  const catalog = signalCatalog(todayKey, jobSecuredOn, instagramStartedOn);
+  const catalog = SIGNALS;
   const signal = catalog.find((entry) => entry.key === selected) ?? catalog[0];
 
   const window = Math.min(28, dayNumber);
