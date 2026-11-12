@@ -1,4 +1,6 @@
-export const TIMEZONE = "America/Toronto";
+import { mission } from "../../mission.config";
+
+export const TIMEZONE = mission.timezone;
 
 export function dateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -17,6 +19,7 @@ export function dateFromKey(key: string) {
 
 /** Today in the mission's home timezone, not the viewer's. */
 export function missionToday(now = new Date()) {
+  // en-CA is used only because it formats as YYYY-MM-DD.
   const local = new Intl.DateTimeFormat("en-CA", {
     timeZone: TIMEZONE,
     year: "numeric",
