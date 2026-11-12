@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { analyse } from "../../../lib/mission/analytics";
 import { dateFromKey, missionToday } from "../../../lib/mission/dates";
+import { hasClearance } from "../../../lib/clearance";
+import { cloud } from "../../../lib/cloud";
 import type { Logs } from "../../../lib/mission/types";
 
 // A share is a snapshot, not a live view. It is written once to its own table
@@ -37,11 +38,9 @@ function publicSnapshot(logs: Logs, startDate: string, jobSecuredOn: string | nu
 }
 
 export async function POST(request: Request) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) {
-    return NextResponse.json({ error: "Sharing needs SUPABASE_SERVICE_ROLE_KEY" }, { status: 501 });
-  }
+  if (!await hasClearance()) return NextResponse.json({ locked: true }, { status: 401 });
+  const admin = cloud();
+  if (!admin) return NextResponse.json({ error: "Sharing needs the cloud mirror" }, { status: 501 });
 
   const { logs, startDate, jobSecuredOn, instagramStartedOn } = await request.json();
   if (!logs || typeof logs !== "object") {
@@ -49,7 +48,6 @@ export async function POST(request: Request) {
   }
 
   const slug = token();
-  const admin = createClient(url, serviceKey);
   const { error } = await admin.from("shared_dossiers").insert({
     token: slug,
     snapshot: publicSnapshot(logs, startDate, jobSecuredOn, instagramStartedOn),
