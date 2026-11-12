@@ -8,8 +8,8 @@ export const SECTORS = [
   { id: "trajectory", number: "03", label: "TRAJECTORY", caption: "SCAN FIELD / LIVE ANALYSIS" },
   { id: "signals",    number: "04", label: "SIGNALS",    caption: "INTERROGATION / SINGLE SIGNAL" },
   { id: "variance",   number: "05", label: "VARIANCE",   caption: "PERFORMANCE / WEEK OVER WEEK" },
-  { id: "body",       number: "06", label: "BODY",       caption: "BIOMETRICS / MASS TELEMETRY" },
-  { id: "archive",    number: "07", label: "ARCHIVE",    caption: "90-DAY RECORD / EVIDENCE MAP" },
+  { id: "metrics",    number: "06", label: "METRICS",    caption: "MEASURES / WATCHED TELEMETRY" },
+  { id: "archive",    number: "07", label: "ARCHIVE",    caption: "FULL RECORD / EVIDENCE MAP" },
   { id: "dossier",    number: "08", label: "DOSSIER",    caption: "CASE FILE / OPERATION RECORD" },
   { id: "system",     number: "09", label: "SYSTEM",     caption: "LINK STATE / ARCHIVE CONTROL" },
 ] as const;
