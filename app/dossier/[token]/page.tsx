@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { cloud } from "../../../lib/cloud";
 
 // Server-rendered, read-only, no client bundle and no write path. Whatever a
 // visitor sends this route, the worst it can do is render a snapshot.
@@ -20,11 +20,9 @@ type Snapshot = {
 };
 
 async function load(token: string): Promise<Snapshot | null> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return null;
-  const { data } = await createClient(url, anon)
-    .from("shared_dossiers").select("snapshot").eq("token", token).maybeSingle();
+  const client = cloud();
+  if (!client || !/^[a-f0-9]{22}$/.test(token)) return null;
+  const { data } = await client.from("shared_dossiers").select("snapshot").eq("token", token).maybeSingle();
   return (data?.snapshot as Snapshot) ?? null;
 }
 
