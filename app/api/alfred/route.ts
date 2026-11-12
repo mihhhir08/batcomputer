@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { mission } from "../../../mission.config";
+import { FLOOR } from "../../../lib/mission/floor";
+import { GOALS } from "../../../lib/mission/scoring";
+import { isDateKey } from "../../../lib/mission/validate";
 import { hasClearance } from "../../../lib/clearance";
 
 // Alfred speaks once a mission day. The remark is cached in memory for the
@@ -6,34 +10,42 @@ import { hasClearance } from "../../../lib/clearance";
 // token or, worse, produce a different opinion an hour later.
 const cache = new Map<string, string>();
 
-const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-haiku";
+const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-haiku-4.5";
 
 const SYSTEM = `You are Alfred Pennyworth, addressing the person you have served for years.
 
 You are not a chatbot, a coach, or a habit tracker. You are the one person permitted
-to be quietly disappointed in him, and the one person who never doubts him.
+to be quietly disappointed in them, and the one person who never doubts them.
 
 Rules:
 - ONE remark. Two sentences at most. Never three.
-- Dry, understated, specific. British register. Address him as "sir" at most once.
+- Dry, understated, specific. British register. Address them as "${mission.honorific}" at most once.
 - Cite the actual numbers you are given. Never invent a fact you were not told.
-- If he has returned after a gap, acknowledge it once, without reproach, and move on.
+- If they have returned after a gap, acknowledge it once, without reproach, and move on.
 - Never use exclamation marks, emoji, or motivational language.
 - Never say "you've got this", "keep going", "amazing", "journey", or "proud of you".
 - If the day is going badly, say so plainly. Do not soften it into nothing.
 - If the day is going well, note it without ceremony.`;
 
+const count = (value: unknown) => (Number.isFinite(Number(value)) ? Math.max(0, Math.round(Number(value))) : 0);
+const goal = (value: unknown) => (GOALS.includes(value as string) ? (value as string) : "");
+
+// Everything is coerced to a number, a date or a known goal before it reaches
+// the model, so the request body cannot smuggle instructions into the prompt.
 function prompt(body: Record<string, unknown>) {
-  const gap = body.gap as { days: number; from: string; to: string } | null;
-  const run = body.floorRun as { current: number; longest: number } | undefined;
+  const gap = body.gap as { days?: unknown; from?: unknown; to?: unknown } | null;
+  const run = body.floorRun as { current?: unknown; longest?: unknown } | undefined;
+  const strongest = goal(body.strongest);
+  const weakest = goal(body.weakest);
   return [
-    `Mission day ${body.dayNumber} of 90. ${body.daysRemaining} remain.`,
-    `Today's minimum viable day: ${body.floorMet}/3 held${body.floorHeld ? " (secured)" : ""}.`,
-    `Current run of secured days: ${run?.current ?? 0}. Longest ever: ${run?.longest ?? 0}.`,
-    `This week's weighted score: ${body.weeklyScore}/100.`,
-    body.strongest ? `Strongest system: ${body.strongest}.` : "",
-    body.weakest ? `Weakest system: ${body.weakest}.` : "",
-    gap ? `He has just returned after ${gap.days} days off-grid (${gap.from} to ${gap.to}).` : "",
+    `Mission day ${count(body.dayNumber)} of ${mission.days}. ${count(body.daysRemaining)} remain.`,
+    `Today's minimum viable day: ${count(body.floorMet)}/${FLOOR.length} held${body.floorHeld === true ? " (secured)" : ""}.`,
+    `Current run of secured days: ${count(run?.current)}. Longest ever: ${count(run?.longest)}.`,
+    `This week's weighted score: ${count(body.weeklyScore)}/100.`,
+    strongest ? `Strongest system: ${strongest}.` : "",
+    weakest ? `Weakest system: ${weakest}.` : "",
+    gap && isDateKey(gap.from) && isDateKey(gap.to)
+      ? `They have just returned after ${count(gap.days)} days off-grid (${gap.from} to ${gap.to}).` : "",
   ].filter(Boolean).join("\n");
 }
 
@@ -43,8 +55,9 @@ export async function POST(request: Request) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return NextResponse.json({ line: null, reason: "no key" });
 
-  const body = await request.json();
-  const cacheKey = `${body.date}:${body.floorMet}:${body.floorHeld}`;
+  const body = await request.json().catch(() => null);
+  if (!body || !isDateKey(body.date)) return NextResponse.json({ line: null, reason: "bad request" }, { status: 400 });
+  const cacheKey = `${body.date}:${count(body.floorMet)}:${body.floorHeld === true}`;
   const cached = cache.get(cacheKey);
   if (cached) return NextResponse.json({ line: cached, cached: true });
 
