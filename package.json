@@ -1,6 +1,8 @@
 {
-  "name": "momentum-90",
-  "version": "0.1.0",
+  "name": "batcomputer",
+  "version": "2.0.0",
+  "description": "A private mission terminal for a goal challenge you define.",
+  "license": "MIT",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
