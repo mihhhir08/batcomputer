@@ -1,8 +1,9 @@
 "use client";
 
 import { dateKey } from "../../lib/mission/dates";
-import { categoryScores } from "../../lib/mission/scoring";
-import { GOAL_COLORS, type Logs } from "../../lib/mission/types";
+import { GOALS, goalColor, goalScore, score } from "../../lib/mission/scoring";
+import type { Logs } from "../../lib/mission/types";
+import { mission } from "../../mission.config";
 
 type Point = { x: number; y: number };
 type Observation = { index: number; value: number };
@@ -34,20 +35,17 @@ function segments(observations: Observation[]) {
   return out;
 }
 
-export function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: {
+export function TrendChart({ logs, dates }: {
   logs: Logs;
   dates: Date[];
-  jobSecuredOn: string | null;
-  instagramStartedOn: string | null;
 }) {
-  const series = (["Overall", "Audience", "Career"] as const).map((name) => ({
+  const series = ["Overall", ...GOALS].map((name) => ({
     name,
-    color: name === "Overall" ? "#78ddeb" : GOAL_COLORS[name as "Audience" | "Career"],
+    color: name === "Overall" ? "#e8f4f8" : goalColor(name),
     observations: dates.flatMap((date, index) => {
       const log = logs[dateKey(date)];
       if (!log) return [];
-      const values = categoryScores(log, dateKey(date), jobSecuredOn, instagramStartedOn);
-      return [{ index, value: values[name] }];
+      return [{ index, value: name === "Overall" ? score(log) : goalScore(log, name) }];
     }),
   }));
 
@@ -78,7 +76,7 @@ export function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: {
       </div>
 
       <svg className="trend-chart" viewBox="0 0 760 245" role="img"
-        aria-label="Overall, audience and career trends with off-grid days shown as breaks">
+        aria-label="Overall and per-goal score trends with off-grid days shown as breaks">
         <rect className="target-zone" x="44" y={y(100)} width="696" height={y(70) - y(100)} />
         <text x="52" y={y(70) - 7} className="target-label">TARGET BAND · 70–100</text>
 
@@ -120,14 +118,14 @@ export function TrendChart({ logs, dates, jobSecuredOn, instagramStartedOn }: {
         {overall.observations.map(({ index, value }) => (
           <circle key={`dot-${index}`} className="trend-dot" cx={x(index)} cy={y(value)} r="2.6">
             <title>
-              {dates[index].toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })} · {value}%
+              {dates[index].toLocaleDateString(mission.locale, { month: "short", day: "numeric", timeZone: "UTC" })} · {value}%
             </title>
           </circle>
         ))}
 
         {dates.map((date, index) => (index === 0 || index === dates.length - 1) && (
           <text key={dateKey(date)} x={x(index)} y="235" textAnchor="middle" className="axis-label">
-            {date.toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}
+            {date.toLocaleDateString(mission.locale, { month: "short", day: "numeric", timeZone: "UTC" })}
           </text>
         ))}
 

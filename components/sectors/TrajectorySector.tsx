@@ -6,15 +6,13 @@ import { addDays } from "../../lib/mission/dates";
 import type { Logs } from "../../lib/mission/types";
 
 export function TrajectorySector({
-  logs, today, dayNumber, range, onRange, jobSecuredOn, instagramStartedOn, weeklyScore, challengeScore, floorDays,
+  logs, today, dayNumber, range, onRange, weeklyScore, challengeScore, floorDays,
 }: {
   logs: Logs;
   today: Date;
   dayNumber: number;
   range: 14 | 30 | 90;
   onRange: (range: 14 | 30 | 90) => void;
-  jobSecuredOn: string | null;
-  instagramStartedOn: string | null;
   weeklyScore: number;
   challengeScore: number;
   floorDays: number;
@@ -41,7 +39,7 @@ export function TrajectorySector({
         </dl>
       </div>
 
-      <TrendChart logs={logs} dates={dates} jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn} />
+      <TrendChart logs={logs} dates={dates} />
     </div>
   );
 }
