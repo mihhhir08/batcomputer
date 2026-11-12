@@ -11,7 +11,7 @@ const LENGTH = 4;
  */
 export function PinLock({ onCleared }: { onCleared: () => void }) {
   const [pin, setPin] = useState("");
-  const [state, setState] = useState<"idle" | "checking" | "denied">("idle");
+  const [state, setState] = useState<"idle" | "checking" | "denied" | "locked">("idle");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -28,6 +28,12 @@ export function PinLock({ onCleared }: { onCleared: () => void }) {
       if (response.ok) {
         sound.floorHeld();
         return onCleared();
+      }
+      // Too many wrong PINs: the server refuses every attempt for a while.
+      if (response.status === 429) {
+        sound.deny();
+        setPin("");
+        return setState("locked");
       }
     } catch {
       // fall through to denial
@@ -72,8 +78,8 @@ export function PinLock({ onCleared }: { onCleared: () => void }) {
         onChange={(event) => change(event.target.value)}
       />
 
-      <p className={state === "denied" ? "pin-note denied" : "pin-note"}>
-        {state === "denied" ? "DENIED" : state === "checking" ? "VERIFYING" : "ENTER FOUR DIGITS"}
+      <p className={state === "denied" || state === "locked" ? "pin-note denied" : "pin-note"}>
+        {state === "locked" ? "LOCKED OUT · TRY AGAIN IN 15 MIN" : state === "denied" ? "DENIED" : state === "checking" ? "VERIFYING" : "ENTER FOUR DIGITS"}
       </p>
     </section>
   );
