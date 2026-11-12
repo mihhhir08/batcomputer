@@ -1,63 +1,36 @@
-import type { DayLog } from "./types";
-import { xPostCount } from "./scoring";
+import type { DayLog, SignalConfig } from "./types";
+import { SCORED, amount, fmt, reading, targetOf } from "./scoring";
 
 // The floor is not the goal. It is the line under which a day stops counting.
 // It must stay clearable on your worst day, or it is just another ceiling.
 
-export const STEP_FLOOR = 10000;
-
-export type FloorKey = "steps" | "publish" | "scalp";
+/** The signals marked `floor` in mission.config.ts. */
+export const FLOOR = SCORED.filter((signal) => signal.floor);
 
 export type FloorCheck = {
-  key: FloorKey;
+  key: string;
   label: string;
   detail: string;
   met: boolean;
   reading: string;
 };
 
-/**
- * One post on any channel clears the publish floor. Requiring all three would
- * make the floor unreachable on a bad day, which is what broke v1.
- */
-export function published(log: DayLog) {
-  return xPostCount(log) > 0 || log.linkedin || log.instagram;
+/** A numeric `floor` lets a count clear the floor well below its full target. */
+export function floorAt(signal: SignalConfig) {
+  return typeof signal.floor === "number" ? signal.floor : targetOf(signal);
 }
 
 export function floorChecks(log: DayLog): FloorCheck[] {
-  const posts = xPostCount(log);
-  const channels = [
-    posts > 0 && `${posts} on X`,
-    log.linkedin && "LinkedIn",
-    log.instagram && "Instagram",
-  ].filter(Boolean) as string[];
-
-  return [
-    {
-      key: "steps",
-      label: "Movement",
-      detail: `${STEP_FLOOR.toLocaleString("en-CA")} steps`,
-      met: log.steps >= STEP_FLOOR,
-      reading: log.steps.toLocaleString("en-CA"),
-    },
-    {
-      key: "publish",
-      label: "Distribution",
-      detail: "Publish on any channel",
-      met: published(log),
-      reading: channels.length ? channels.join(" · ") : "Nothing published",
-    },
-    {
-      key: "scalp",
-      label: "Recovery",
-      detail: "Scalp massage",
-      met: log.scalpMassage,
-      reading: log.scalpMassage ? "Complete" : "Open",
-    },
-  ];
+  return FLOOR.map((signal) => ({
+    key: signal.key,
+    label: signal.label,
+    detail: signal.type === "check" ? signal.note ?? "Daily" : `${fmt(floorAt(signal))} ${signal.unit ?? ""}`.trim(),
+    met: amount(log, signal.key) >= floorAt(signal),
+    reading: reading(log, signal),
+  }));
 }
 
-/** A day counts when all three hold. Binary, and deliberately unweighted. */
+/** A day counts when every floor signal holds. Binary, and deliberately unweighted. */
 export function floorHeld(log: DayLog) {
   return floorChecks(log).every((check) => check.met);
 }
