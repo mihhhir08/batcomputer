@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "BATCOMPUTER",
     short_name: "BATCOMPUTER",
-    description: "Private 90-day mission terminal",
+    description: "Private mission terminal",
     start_url: "/",
     display: "standalone",
     orientation: "landscape",

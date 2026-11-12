@@ -1,4 +1,5 @@
 import { cloud } from "../../../lib/cloud";
+import { mission } from "../../../mission.config";
 
 // Server-rendered, read-only, no client bundle and no write path. Whatever a
 // visitor sends this route, the worst it can do is render a snapshot.
@@ -43,8 +44,8 @@ export default async function SharedDossier({ params }: { params: Promise<{ toke
     <main className="dossier-public">
       <header>
         <span className="console-label">BATCOMPUTER // SHARED DOSSIER · READ ONLY</span>
-        <h1>90-DAY OPERATION</h1>
-        <p>Day {snapshot.dayNumber} of 90 · {snapshot.daysRemaining} remaining</p>
+        <h1>{mission.days}-DAY OPERATION</h1>
+        <p>Day {snapshot.dayNumber} of {mission.days} · {snapshot.daysRemaining} remaining</p>
       </header>
 
       <dl className="readout-strip wide">
@@ -80,7 +81,7 @@ export default async function SharedDossier({ params }: { params: Promise<{ toke
       </section>
 
       <footer>
-        <p>A snapshot, not a live view. Body metrics and per-habit detail are not included.</p>
+        <p>A snapshot, not a live view. Measures and per-signal detail are not included.</p>
       </footer>
     </main>
   );
