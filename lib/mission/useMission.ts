@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEMO_LOGS, STORAGE, stripRetired } from "./demo";
+import { mission } from "../../mission.config";
+import { DEMO_DAYS, STORAGE, demoLogs } from "./demo";
 import { addDays, dateFromKey, dateKey, missionToday } from "./dates";
-import { EMPTY_LOG, START_DATE, type DayLog, type Logs, type SyncState } from "./types";
+import { EMPTY_LOG, type DayLog, type Logs, type SyncState } from "./types";
 
 // No sign-in. This is a single-operator terminal, so the browser keeps the
 // authoritative copy in localStorage and mirrors it through /api/mission,
@@ -25,9 +26,8 @@ export function useMission() {
   const [hydrated, setHydrated] = useState(false);
   const [missionDataError, setMissionDataError] = useState(false);
   const [preview, setPreview] = useState(true);
-  const [startDate, setStartDate] = useState(START_DATE);
-  const [jobSecuredOn, setJobSecuredOn] = useState<string | null>(null);
-  const [instagramStartedOn, setInstagramStartedOn] = useState<string | null>(null);
+  // Until a mission is started, the clock is set so the demo days fill it.
+  const [startDate, setStartDate] = useState(() => dateKey(addDays(missionToday(), -DEMO_DAYS)));
   const [notice, setNotice] = useState("");
   const [syncState, setSyncState] = useState<SyncState>("local");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -36,27 +36,24 @@ export function useMission() {
   const readLocal = useCallback(() => {
     const saved = window.localStorage.getItem(STORAGE.logs);
     const savedStart = window.localStorage.getItem(STORAGE.start);
-    const savedJob = window.localStorage.getItem(STORAGE.jobSecured);
-    const savedInstagram = window.localStorage.getItem(STORAGE.instagramStarted);
     const started = window.localStorage.getItem(STORAGE.started) === "true" || Boolean(savedStart);
     if (savedStart) setStartDate(savedStart);
-    if (savedJob) setJobSecuredOn(savedJob);
-    if (savedInstagram) setInstagramStartedOn(savedInstagram);
 
     if (!saved) {
-      if (!started) setLogs(DEMO_LOGS);
-      return { logs: {} as Logs, started };
+      if (!started) setLogs(demoLogs(missionToday()));
+      return { logs: {} as Logs, started, start: savedStart };
     }
     try {
-      const parsed = stripRetired(JSON.parse(saved));
+      const parsed = JSON.parse(saved) as Logs;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not a record");
       setLogs(parsed);
       setPreview(false);
-      return { logs: parsed, started: true };
+      return { logs: parsed, started: true, start: savedStart };
     } catch {
       setMissionDataError(true);
       setPreview(false);
       setNotice("Mission data could not be read safely. Restore a known-good backup; the stored browser copy has not been overwritten.");
-      return { logs: {} as Logs, started };
+      return { logs: {} as Logs, started, start: savedStart };
     }
   }, []);
 
@@ -96,13 +93,11 @@ export function useMission() {
 
         if (data.profile?.exists) {
           setStartDate(data.profile.startDate);
-          setJobSecuredOn(data.profile.jobSecuredOn);
-          setInstagramStartedOn(data.profile.instagramStartedOn);
           window.localStorage.setItem(STORAGE.start, data.profile.startDate);
           window.localStorage.setItem(STORAGE.started, "true");
           setPreview(false);
-        } else if (local.started) {
-          await post({ type: "profile", startDate: local.logs ? startDate : START_DATE }).catch(() => undefined);
+        } else if (local.started && local.start) {
+          await post({ type: "profile", startDate: local.start }).catch(() => undefined);
         }
 
         setSyncState("saved");
@@ -117,8 +112,6 @@ export function useMission() {
       window.clearTimeout(giveUp);
       controller.abort();
     };
-    // Runs once. startDate is read only as a fallback for a first-time profile.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readLocal]);
 
   useEffect(() => {
@@ -130,9 +123,9 @@ export function useMission() {
   const today = missionToday();
   const todayKey = dateKey(today);
   const start = dateFromKey(startDate);
-  const end = addDays(start, 89);
-  const dayNumber = Math.min(90, Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1));
-  const daysRemaining = Math.min(90, Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86400000) + 1));
+  const end = addDays(start, mission.days - 1);
+  const dayNumber = Math.min(mission.days, Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1));
+  const daysRemaining = Math.min(mission.days, Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86400000) + 1));
   const todayLog = logs[todayKey] ?? EMPTY_LOG;
 
   const updateToday = useCallback((patch: Partial<DayLog>) => {
@@ -149,7 +142,7 @@ export function useMission() {
       });
   }, [preview, logs, todayKey]);
 
-  const startMission = useCallback(async (chosenStart = START_DATE) => {
+  const startMission = useCallback(async (chosenStart: string) => {
     setPreview(false);
     setLogs({});
     setStartDate(chosenStart);
@@ -158,27 +151,11 @@ export function useMission() {
     if (cloudReady.current) await post({ type: "profile", startDate: chosenStart }).catch(() => undefined);
   }, []);
 
-  const setJobOutcome = useCallback((date: string | null) => {
-    setJobSecuredOn(date);
-    if (date) window.localStorage.setItem(STORAGE.jobSecured, date);
-    else window.localStorage.removeItem(STORAGE.jobSecured);
-    if (cloudReady.current) void post({ type: "profile", jobSecuredOn: date }).catch(() => undefined);
-    setNotice(date ? "Career goal reached. Daily applications are now retired from your score." : "The job-search goal is active again.");
-  }, []);
-
-  const startInstagram = useCallback(() => {
-    setInstagramStartedOn(todayKey);
-    window.localStorage.setItem(STORAGE.instagramStarted, todayKey);
-    if (cloudReady.current) void post({ type: "profile", instagramStartedOn: todayKey }).catch(() => undefined);
-    setNotice("Instagram is active from today. Earlier scores stay unchanged.");
-  }, [todayKey]);
-
   return {
     logs, setLogs, hydrated, missionDataError, preview, startDate, setStartDate,
-    jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
     notice, setNotice, syncState, setSyncState, lastSyncedAt,
     today, todayKey, start, end, dayNumber, daysRemaining, todayLog,
-    updateToday, startMission, setJobOutcome, startInstagram,
+    updateToday, startMission,
   };
 }
 
