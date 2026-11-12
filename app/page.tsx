@@ -3,11 +3,12 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useMission } from "../lib/mission/useMission";
 import { analyse } from "../lib/mission/analytics";
-import { floorHeld, floorMetCount } from "../lib/mission/floor";
+import { FLOOR, floorHeld, floorMetCount } from "../lib/mission/floor";
 import { returnGap } from "../lib/mission/gaps";
 import { buildBackup, downloadBackup, parseBackup } from "../lib/mission/backup";
-import type { GoalName } from "../lib/mission/types";
-import type { SignalKey } from "../lib/mission/signals";
+import { GOALS } from "../lib/mission/scoring";
+import { STORAGE } from "../lib/mission/demo";
+import { mission as config } from "../mission.config";
 import { DEFAULT_SECTOR, SECTORS, sectorAt, sectorForDigit, sectorIndex, type SectorId } from "../lib/sectors";
 import { sound } from "../lib/audio/console";
 
@@ -20,7 +21,7 @@ import { TodaySector } from "../components/sectors/TodaySector";
 import { TrajectorySector } from "../components/sectors/TrajectorySector";
 import { SignalsSector } from "../components/sectors/SignalsSector";
 import { VarianceSector } from "../components/sectors/VarianceSector";
-import { BodySector } from "../components/sectors/BodySector";
+import { MetricsSector } from "../components/sectors/MetricsSector";
 import { ArchiveSector } from "../components/sectors/ArchiveSector";
 import { DossierSector } from "../components/sectors/DossierSector";
 import { SystemSector } from "../components/sectors/SystemSector";
@@ -31,10 +32,9 @@ export default function Terminal() {
   const mission = useMission();
   const {
     logs, setLogs, hydrated, missionDataError, preview, startDate, setStartDate,
-    jobSecuredOn, setJobSecuredOn, instagramStartedOn, setInstagramStartedOn,
     notice, setNotice, syncState, setSyncState, lastSyncedAt,
     today, todayKey, start, dayNumber, daysRemaining, todayLog,
-    updateToday, startMission, setJobOutcome, startInstagram,
+    updateToday, startMission,
   } = mission;
 
   const [sector, setSector] = useState<SectorId>(DEFAULT_SECTOR);
@@ -42,7 +42,7 @@ export default function Terminal() {
   const [bootLeaving, setBootLeaving] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [range, setRange] = useState<14 | 30 | 90>(14);
-  const [signal, setSignal] = useState<SignalKey>("floor");
+  const [signal, setSignal] = useState("floor");
   const [clock, setClock] = useState<Date | null>(null);
   const [gapAcked, setGapAcked] = useState(true);
   const [alfred, setAlfred] = useState<string | null>(null);
@@ -52,8 +52,8 @@ export default function Terminal() {
   const [locked, setLocked] = useState(false);
 
   const stats = useMemo(
-    () => analyse(logs, start, today, jobSecuredOn, instagramStartedOn),
-    [logs, start, today, jobSecuredOn, instagramStartedOn],
+    () => analyse(logs, start, today),
+    [logs, start, today],
   );
   const gap = useMemo(() => returnGap(logs, start, today), [logs, start, today]);
   const held = floorHeld(todayLog);
@@ -173,9 +173,7 @@ export default function Terminal() {
         const merged = { ...logs, ...backup.logs };
         setLogs(merged);
         setStartDate(backup.profile?.startDate ?? startDate);
-        setJobSecuredOn(backup.profile?.jobSecuredOn ?? jobSecuredOn);
-        setInstagramStartedOn(backup.profile?.instagramStartedOn ?? instagramStartedOn);
-        window.localStorage.setItem("momentum-90-logs", JSON.stringify(merged));
+        window.localStorage.setItem(STORAGE.logs, JSON.stringify(merged));
         await fetch("/api/mission", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -195,7 +193,7 @@ export default function Terminal() {
       const response = await fetch("/api/share", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ logs, startDate, jobSecuredOn, instagramStartedOn }),
+        body: JSON.stringify({ logs, startDate }),
       });
       const data = await response.json();
       if (data?.url) {
@@ -204,7 +202,7 @@ export default function Terminal() {
         // which is what the clipboard API actually requires.
         const copied = await navigator.clipboard.writeText(data.url).then(() => true).catch(() => false);
         setNotice(copied
-          ? "Read-only link copied to your clipboard. Body metrics are stripped."
+          ? "Read-only link copied to your clipboard. Measures are stripped."
           : "Read-only link generated. Use COPY to put it on your clipboard.");
       } else {
         setNotice("Share link could not be generated.");
@@ -224,15 +222,16 @@ export default function Terminal() {
     })),
     { id: "close", label: "Close today's record", hint: "CLOSE", run: () => updateToday({ closedAt: new Date().toISOString() }) },
     { id: "reopen", label: "Reopen today's record", run: () => updateToday({ closedAt: null }) },
-    { id: "recovery", label: "Plan strength recovery", run: () => updateToday({ recovery: true, strength: false }) },
     { id: "weakest", label: `Show weakest system · ${stats.weakest?.category ?? "—"}`, run: () => goto("variance") },
-    { id: "backup", label: "Download a backup", run: () => downloadBackup(buildBackup(logs, { startDate, jobSecuredOn, instagramStartedOn }), todayKey) },
-  ], [goto, updateToday, stats.weakest, logs, startDate, jobSecuredOn, instagramStartedOn, todayKey]);
+    { id: "backup", label: "Download a backup", run: () => downloadBackup(buildBackup(logs, { startDate }), todayKey) },
+  ], [goto, updateToday, stats.weakest, logs, startDate, todayKey]);
 
   function runDirect(input: string) {
     const text = input.trim().toLowerCase();
-    const weight = text.match(/^log\s+(\d+(?:\.\d+)?)\s*kg$/);
-    if (weight) { updateToday({ weight: Number(weight[1]) }); return true; }
+    // `log <signal> <value>` writes any numeric signal from mission.config.ts.
+    const entry = text.match(/^log\s+(\S+)\s+(\d+(?:\.\d+)?)$/);
+    const target = entry && config.signals.find((item) => item.type !== "check" && item.key.toLowerCase() === entry[1]);
+    if (entry && target) { updateToday({ [target.key]: Number(entry[2]) }); return true; }
     const open = text.match(/^open\s+(\d{4}-\d{2}-\d{2})$/);
     if (open) { goto("archive"); return true; }
     if (text === "close") { updateToday({ closedAt: new Date().toISOString() }); return true; }
@@ -245,14 +244,14 @@ export default function Terminal() {
         ready={bootReady} authenticated hydrated={hydrated}
         missionDataError={missionDataError} syncState={syncState}
         dayNumber={dayNumber} daysRemaining={daysRemaining} todayState={todayState}
-        floorMet={floorMetCount(todayLog)} floorHeld={held} level={stats.level}
+        floorMet={floorMetCount(todayLog)} floorTotal={FLOOR.length} floorHeld={held} level={stats.level}
         gap={gap && !gapAcked ? gap : null} alfred={alfred} onEnter={finishBoot}
         locked={locked} onCleared={() => { setLocked(false); finishBoot(); }}
       />
     </div>
   );
 
-  const dossierCategories = (["Audience", "Career", "Body", "Hair"] as GoalName[])
+  const dossierCategories = GOALS
     .map((category) => ({ category, value: stats.categoryAverage(stats.recorded, category) }));
 
   return (
@@ -263,12 +262,12 @@ export default function Terminal() {
 
         <div className="terminal-chrome">
           <span className="chrome-live"><i />BATCOMPUTER</span>
-          <span>MISSION DAY <b>{String(dayNumber).padStart(2, "0")}</b>/90</span>
+          <span>MISSION DAY <b>{String(dayNumber).padStart(2, "0")}</b>/{config.days}</span>
           <span>RECORD <b>{todayState}</b></span>
-          <span>FLOOR <b>{held ? "HELD" : `${floorMetCount(todayLog)}/3`}</b></span>
+          <span>FLOOR <b>{held ? "HELD" : `${floorMetCount(todayLog)}/${FLOOR.length}`}</b></span>
           <span className="chrome-spacer" />
           <span>LINK <b>{syncState === "saved" ? "OK" : syncState.toUpperCase()}</b></span>
-          <span><b>{clock ? clock.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Toronto" }) : "--:--"}</b> ET</span>
+          <span><b>{clock ? clock.toLocaleTimeString(config.locale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: config.timezone, timeZoneName: "short" }) : "--:--"}</b></span>
         </div>
 
         <SectorRail active={sector} onSelect={goto} floorHeld={held} onConsole={() => setConsoleOpen(true)} />
@@ -290,8 +289,7 @@ export default function Terminal() {
 
           {sector === "command" && (
             <CommandSector
-              todayLog={todayLog} todayKey={todayKey} jobSecuredOn={jobSecuredOn}
-              instagramStartedOn={instagramStartedOn} dayNumber={dayNumber} daysRemaining={daysRemaining}
+              todayLog={todayLog} dayNumber={dayNumber} daysRemaining={daysRemaining}
               level={stats.level} xp={stats.xp} nextLevelXp={stats.nextLevelXp}
               gap={gap} gapAcknowledged={gapAcked} onAcknowledgeGap={acknowledgeGap}
               alfred={alfred} alfredPending={alfredPending}
@@ -301,19 +299,12 @@ export default function Terminal() {
           )}
 
           {sector === "today" && (
-            <TodaySector
-              todayLog={todayLog} todayKey={todayKey} jobSecuredOn={jobSecuredOn}
-              instagramStartedOn={instagramStartedOn} updateToday={updateToday}
-              onStartInstagram={() => {
-                if (window.confirm("Activate Instagram from today? Earlier Audience scores stay unchanged.")) startInstagram();
-              }}
-            />
+            <TodaySector todayLog={todayLog} updateToday={updateToday} />
           )}
 
           {sector === "trajectory" && (
             <TrajectorySector
               logs={logs} today={today} dayNumber={dayNumber} range={range} onRange={setRange}
-              jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn}
               weeklyScore={stats.weeklyScore} challengeScore={stats.challengeScore} floorDays={stats.floorDays}
             />
           )}
@@ -321,8 +312,7 @@ export default function Terminal() {
           {sector === "signals" && (
             <SignalsSector
               logs={logs} start={start} today={today} todayKey={todayKey}
-              selected={signal} onSelect={setSignal} jobSecuredOn={jobSecuredOn}
-              instagramStartedOn={instagramStartedOn} dayNumber={dayNumber}
+              selected={signal} onSelect={setSignal} dayNumber={dayNumber}
             />
           )}
 
@@ -337,15 +327,12 @@ export default function Terminal() {
             />
           )}
 
-          {sector === "body" && (
-            <BodySector todayLog={todayLog} weights={stats.weights} updateToday={updateToday} />
+          {sector === "metrics" && (
+            <MetricsSector todayLog={todayLog} measures={stats.measures} updateToday={updateToday} />
           )}
 
           {sector === "archive" && (
-            <ArchiveSector
-              logs={logs} start={start} todayKey={todayKey}
-              jobSecuredOn={jobSecuredOn} instagramStartedOn={instagramStartedOn}
-            />
+            <ArchiveSector logs={logs} start={start} todayKey={todayKey} />
           )}
 
           {sector === "dossier" && (
@@ -362,7 +349,7 @@ export default function Terminal() {
             <SystemSector
               syncState={syncState} lastSyncedAt={lastSyncedAt} missionDataError={missionDataError}
               startDate={startDate} dayNumber={dayNumber} logCount={Object.keys(logs).length}
-              onBackup={() => downloadBackup(buildBackup(logs, { startDate, jobSecuredOn, instagramStartedOn }), todayKey)}
+              onBackup={() => downloadBackup(buildBackup(logs, { startDate }), todayKey)}
               onRestore={handleRestore}
               shareUrl={shareUrl} onShare={generateShare}
               onRevokeShare={() => {
