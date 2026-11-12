@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { analyse } from "../../../lib/mission/analytics";
-import { dateFromKey, missionToday } from "../../../lib/mission/dates";
+import { dateFromKey, dateKey, missionToday } from "../../../lib/mission/dates";
+import { GOALS } from "../../../lib/mission/scoring";
+import { cleanLogs, isDateKey } from "../../../lib/mission/validate";
 import { hasClearance } from "../../../lib/clearance";
 import { cloud } from "../../../lib/cloud";
 import type { Logs } from "../../../lib/mission/types";
@@ -13,10 +15,9 @@ function token() {
   return crypto.randomUUID().replaceAll("-", "").slice(0, 22);
 }
 
-/** Weight, waist and anything else bodily never leaves the terminal. */
-function publicSnapshot(logs: Logs, startDate: string, jobSecuredOn: string | null, instagramStartedOn: string | null) {
-  const start = dateFromKey(startDate);
-  const stats = analyse(logs, start, missionToday(), jobSecuredOn, instagramStartedOn);
+/** Scores only. Measures and per-signal detail never leave the terminal. */
+function publicSnapshot(logs: Logs, startDate: string) {
+  const stats = analyse(logs, dateFromKey(startDate), missionToday());
   return {
     startDate,
     dayNumber: stats.dayNumber,
@@ -27,11 +28,9 @@ function publicSnapshot(logs: Logs, startDate: string, jobSecuredOn: string | nu
     level: stats.level,
     xp: stats.xp,
     weekEvidence: stats.weekEvidence,
-    categories: (["Audience", "Career", "Body", "Hair"] as const)
-      .map((category) => ({ category, value: stats.categoryAverage(stats.recorded, category) })),
-    // Per-day scores only. No habit detail, no weight, no dates of absence.
+    categories: GOALS.map((category) => ({ category, value: stats.categoryAverage(stats.recorded, category) })),
     days: stats.elapsed.map((date) => {
-      const key = date.toISOString().slice(0, 10);
+      const key = dateKey(date);
       return { key, score: logs[key] ? stats.scoreOn(date) : null };
     }),
   };
@@ -42,18 +41,22 @@ export async function POST(request: Request) {
   const admin = cloud();
   if (!admin) return NextResponse.json({ error: "Sharing needs the cloud mirror" }, { status: 501 });
 
-  const { logs, startDate, jobSecuredOn, instagramStartedOn } = await request.json();
-  if (!logs || typeof logs !== "object") {
+  const payload = await request.json().catch(() => null);
+  const logs = cleanLogs(payload?.logs);
+  if (!logs || !isDateKey(payload?.startDate)) {
     return NextResponse.json({ error: "No mission data" }, { status: 400 });
   }
 
   const slug = token();
   const { error } = await admin.from("shared_dossiers").insert({
     token: slug,
-    snapshot: publicSnapshot(logs, startDate, jobSecuredOn, instagramStartedOn),
+    snapshot: publicSnapshot(logs, payload.startDate),
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("share api:", error.message);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 
   const origin = new URL(request.url).origin;
   return NextResponse.json({ url: `${origin}/dossier/${slug}` });
@@ -65,7 +68,8 @@ export async function DELETE() {
   const admin = cloud();
   if (!admin) return NextResponse.json({ error: "Sharing needs the cloud mirror" }, { status: 501 });
   const { error } = await admin.from("shared_dossiers").delete().neq("token", "");
+  if (error) console.error("share api:", error.message);
   return error
-    ? NextResponse.json({ error: error.message }, { status: 500 })
+    ? NextResponse.json({ error: "Database error" }, { status: 500 })
     : NextResponse.json({ revoked: true });
 }
