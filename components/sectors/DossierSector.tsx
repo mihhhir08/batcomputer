@@ -1,13 +1,14 @@
 "use client";
 
 import { addDays } from "../../lib/mission/dates";
-import type { GoalName } from "../../lib/mission/types";
+import { fmt } from "../../lib/mission/scoring";
+import { mission } from "../../mission.config";
 
-const GATES = [
-  { day: 1, label: "Begin" }, { day: 10, label: "Proof" }, { day: 25, label: "Rhythm" },
-  { day: 45, label: "Halfway" }, { day: 60, label: "Systems locked" },
-  { day: 75, label: "Finish mode" }, { day: 90, label: "Transform" },
-];
+// Gates sit at fixed fractions of the mission, so they scale with its length.
+const GATES = ([
+  [0, "Begin"], [0.11, "Proof"], [0.28, "Rhythm"], [0.5, "Halfway"],
+  [0.67, "Systems locked"], [0.83, "Finish mode"], [1, "Transform"],
+] as const).map(([fraction, label]) => ({ day: Math.max(1, Math.round(fraction * mission.days)), label }));
 
 /** Written as the mission runs, not unlocked at the end. */
 export function DossierSector({
@@ -24,7 +25,7 @@ export function DossierSector({
   floorRun: { current: number; longest: number };
   weekEvidence: { week: number; value: number; days: number }[];
   bestWeek?: { week: number; value: number };
-  dossierCategories: { category: GoalName; value: number }[];
+  dossierCategories: { category: string; value: number }[];
   caseEntries: { week: number; text: string }[];
 }) {
   return (
@@ -34,7 +35,7 @@ export function DossierSector({
         <div><dt>FLOOR HELD</dt><dd>{floorDays}d</dd></div>
         <div><dt>RECORD RUN</dt><dd>{floorRun.longest}d</dd></div>
         <div><dt>LEVEL</dt><dd>{String(level).padStart(2, "0")}</dd></div>
-        <div><dt>XP</dt><dd>{xp.toLocaleString("en-CA")}</dd></div>
+        <div><dt>XP</dt><dd>{fmt(xp)}</dd></div>
       </dl>
 
       <section className="dossier-block">
@@ -71,7 +72,7 @@ export function DossierSector({
             <div key={gate.day} className={dayNumber >= gate.day ? "reached" : ""}>
               <b>{String(gate.day).padStart(2, "0")}</b>
               <span>{gate.label}</span>
-              <small>{addDays(start, gate.day - 1).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" })}</small>
+              <small>{addDays(start, gate.day - 1).toLocaleDateString(mission.locale, { month: "short", day: "numeric", timeZone: "UTC" })}</small>
             </div>
           ))}
         </div>

@@ -7,31 +7,30 @@ import { dayState } from "../../lib/mission/gaps";
 import { floorChecks, floorHeld } from "../../lib/mission/floor";
 import { score } from "../../lib/mission/scoring";
 import { EMPTY_LOG, type Logs } from "../../lib/mission/types";
+import { mission } from "../../mission.config";
 
-/** The 90-day record. Every cell opens without leaving the sector. */
-export function ArchiveSector({ logs, start, todayKey, jobSecuredOn, instagramStartedOn }: {
+/** The whole mission record. Every cell opens without leaving the sector. */
+export function ArchiveSector({ logs, start, todayKey }: {
   logs: Logs;
   start: Date;
   todayKey: string;
-  jobSecuredOn: string | null;
-  instagramStartedOn: string | null;
 }) {
   const [open, setOpen] = useState<string | null>(null);
-  const days = Array.from({ length: 90 }, (_, index) => addDays(start, index));
+  const days = Array.from({ length: mission.days }, (_, index) => addDays(start, index));
 
   const openLog = open ? logs[open] : undefined;
-  const openScore = open ? score(openLog ?? EMPTY_LOG, open, jobSecuredOn, instagramStartedOn) : 0;
+  const openScore = open ? score(openLog ?? EMPTY_LOG) : 0;
   const openDay = open ? Math.round((dateFromKey(open).getTime() - start.getTime()) / 86400000) + 1 : 0;
   const openState = open ? dayState(logs, open, todayKey) : "future";
 
   return (
     <div className="archive-sector">
-      <div className="archive-map" role="group" aria-label="90-day record">
+      <div className="archive-map" role="group" aria-label={`${mission.days}-day record`}>
         {days.map((date, index) => {
           const key = dateKey(date);
           const log = logs[key];
           const state = dayState(logs, key, todayKey);
-          const value = score(log ?? EMPTY_LOG, key, jobSecuredOn, instagramStartedOn);
+          const value = score(log ?? EMPTY_LOG);
           const band = state === "future" ? "future" : !log ? state : value >= 75 ? "high" : value >= 40 ? "mid" : "low";
           return (
             <button key={key} type="button"

@@ -1,13 +1,13 @@
 "use client";
 
-import { GOAL_COLORS, type GoalName } from "../../lib/mission/types";
+import { goalColor } from "../../lib/mission/scoring";
 
 export function VarianceSector({
   weeklyCategories, previousCategories, hasPreviousWeek, weeklyScore, previousScore,
   weeklyDelta, weekIndex, weekDayCount, weekLoggedCount, weekClosedCount, strongest, weakest,
 }: {
-  weeklyCategories: { category: GoalName; value: number }[];
-  previousCategories: { category: GoalName; value: number }[];
+  weeklyCategories: { category: string; value: number }[];
+  previousCategories: { category: string; value: number }[];
   hasPreviousWeek: boolean;
   weeklyScore: number;
   previousScore: number;
@@ -16,8 +16,8 @@ export function VarianceSector({
   weekDayCount: number;
   weekLoggedCount: number;
   weekClosedCount: number;
-  strongest: { category: GoalName; value: number };
-  weakest: { category: GoalName; value: number };
+  strongest: { category: string; value: number };
+  weakest: { category: string; value: number };
 }) {
   return (
     <div className="variance-sector">
@@ -42,7 +42,7 @@ export function VarianceSector({
           const prior = previousCategories.find((entry) => entry.category === category)?.value ?? 0;
           const change = hasPreviousWeek ? value - prior : 0;
           return (
-            <section key={category} className="variance-card" style={{ "--goal": GOAL_COLORS[category] } as React.CSSProperties}>
+            <section key={category} className="variance-card" style={{ "--goal": goalColor(category) } as React.CSSProperties}>
               <header>
                 <span><i />{category}</span>
                 <em className={!hasPreviousWeek ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat"}>
