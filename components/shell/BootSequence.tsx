@@ -18,7 +18,7 @@ type Check = { label: string; value: string; tone: "ok" | "pending" | "bad" };
  */
 export function BootSequence({
   ready, authenticated, hydrated, missionDataError, syncState,
-  dayNumber, daysRemaining, todayState, floorMet, floorHeld: held,
+  dayNumber, daysRemaining, todayState, floorMet, floorTotal, floorHeld: held,
   level, gap, alfred, onEnter, locked, onCleared,
 }: {
   ready: boolean;
@@ -30,6 +30,7 @@ export function BootSequence({
   daysRemaining: number;
   todayState: "UNLOGGED" | "OPEN" | "CLOSED";
   floorMet: number;
+  floorTotal: number;
   floorHeld: boolean;
   level: number;
   gap: Gap | null;
@@ -140,7 +141,7 @@ export function BootSequence({
         </div>
         <div className={held ? "boot-floor held" : "boot-floor"}>
           <span>MINIMUM VIABLE DAY</span>
-          <strong>{held ? "SECURED" : `${floorMet} OF 3`}</strong>
+          <strong>{held ? "SECURED" : `${floorMet} OF ${floorTotal}`}</strong>
           <em>RECORD {todayState} · LEVEL {String(level).padStart(2, "0")}</em>
         </div>
       </div>

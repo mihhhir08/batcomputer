@@ -2,12 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sound } from "../../lib/audio/console";
+import { mission } from "../../mission.config";
+
+// A real example of the direct syntax, taken from the first numeric signal.
+const NUMERIC = mission.signals.find((signal) => signal.type !== "check");
+const EXAMPLE = NUMERIC ? `log ${NUMERIC.key} ${NUMERIC.target ?? 1}` : "close";
 
 export type Command = { id: string; label: string; hint?: string; run: () => void };
 
 /**
  * A real registry rather than a chain of string matches. Direct syntax is
- * parsed first so `log 79.4 kg` never has to appear in the list.
+ * parsed first so `log steps 8000` never has to appear in the list.
  */
 export function CommandConsole({ commands, onClose, onDirect }: {
   commands: Command[];
@@ -52,7 +57,7 @@ export function CommandConsole({ commands, onClose, onDirect }: {
         <form onSubmit={(event) => { event.preventDefault(); submit(); }}>
           <span aria-hidden="true">&gt;</span>
           <input ref={inputRef} value={query} aria-label="Command"
-            placeholder="Type a command, or log 79.4 kg"
+            placeholder={`Type a command, or ${EXAMPLE}`}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "ArrowDown") {
@@ -80,7 +85,7 @@ export function CommandConsole({ commands, onClose, onDirect }: {
           {!matches.length && <p className="console-empty">No matching command.</p>}
         </div>
 
-        <footer>Direct syntax · <code>log 79.4 kg</code> · <code>open 2026-08-12</code> · <code>close</code></footer>
+        <footer>Direct syntax · <code>{EXAMPLE}</code> · <code>open 2026-08-12</code> · <code>close</code></footer>
       </section>
     </div>
   );
