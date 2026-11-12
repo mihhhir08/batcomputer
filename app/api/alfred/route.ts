@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasClearance } from "../../../lib/clearance";
 
 // Alfred speaks once a mission day. The remark is cached in memory for the
 // lifetime of the serverless instance so a page refresh does not re-bill a
@@ -37,6 +38,8 @@ function prompt(body: Record<string, unknown>) {
 }
 
 export async function POST(request: Request) {
+  // Every call can spend the operator's OpenRouter credit.
+  if (!await hasClearance()) return NextResponse.json({ line: null, reason: "locked" }, { status: 401 });
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return NextResponse.json({ line: null, reason: "no key" });
 
