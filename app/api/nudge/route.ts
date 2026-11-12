@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { floorChecks, floorHeld } from "../../../lib/mission/floor";
 import { dateFromKey, dateKey, missionToday } from "../../../lib/mission/dates";
+import { cloud } from "../../../lib/cloud";
 import { EMPTY_LOG, START_DATE, type DayLog } from "../../../lib/mission/types";
 
 // The cue. v1 had none, which is most of why it was abandoned: a dashboard you
@@ -39,17 +39,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const admin = cloud();
   const resendKey = process.env.RESEND_API_KEY;
   const to = process.env.NUDGE_EMAIL;
-  if (!url || !serviceKey || !resendKey || !to) {
+  if (!admin || !resendKey || !to) {
     return NextResponse.json({ sent: false, reason: "not configured" });
   }
 
   const today = missionToday();
   const todayKey = dateKey(today);
-  const admin = createClient(url, serviceKey);
 
   const { data: rows } = await admin.from("daily_logs").select("data").eq("log_date", todayKey).limit(1);
   const log: DayLog = { ...EMPTY_LOG, ...(rows?.[0]?.data ?? {}) };

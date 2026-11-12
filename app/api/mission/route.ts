@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { stripRetired } from "../../../lib/mission/demo";
 import { START_DATE, type Logs } from "../../../lib/mission/types";
 import { hasClearance } from "../../../lib/clearance";
+import { cloud } from "../../../lib/cloud";
 
 // Single-operator terminal. There is no sign-in: the browser never holds a
 // Supabase key, and this route talks to the database with the service role.
@@ -15,12 +16,6 @@ export const dynamic = "force-dynamic";
 
 const FALLBACK_OWNER = "00000000-0000-4000-8000-000000000001";
 
-function admin(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
-}
-
 async function ownerId(client: SupabaseClient) {
   const profile = await client.from("profiles").select("user_id").limit(1).maybeSingle();
   if (profile.data?.user_id) return profile.data.user_id as string;
@@ -30,7 +25,7 @@ async function ownerId(client: SupabaseClient) {
 
 export async function GET() {
   if (!await hasClearance()) return NextResponse.json({ locked: true }, { status: 401 });
-  const client = admin();
+  const client = cloud();
   if (!client) return NextResponse.json({ configured: false });
 
   const owner = await ownerId(client);
@@ -56,7 +51,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   if (!await hasClearance()) return NextResponse.json({ locked: true }, { status: 401 });
-  const client = admin();
+  const client = cloud();
   if (!client) return NextResponse.json({ configured: false }, { status: 501 });
 
   const payload = await request.json();
