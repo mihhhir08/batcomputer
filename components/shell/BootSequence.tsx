@@ -19,7 +19,7 @@ type Check = { label: string; value: string; tone: "ok" | "pending" | "bad" };
 export function BootSequence({
   ready, authenticated, hydrated, missionDataError, syncState,
   dayNumber, daysRemaining, todayState, floorMet, floorHeld: held,
-  level, gap, alfred, onEnter,
+  level, gap, alfred, onEnter, locked, onCleared,
 }: {
   ready: boolean;
   authenticated: boolean;
