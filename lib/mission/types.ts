@@ -1,18 +1,41 @@
-export type BinaryKey =
-  | "x" | "linkedin" | "instagram" | "cleanFood" | "protein"
-  | "strength" | "scalpMassage" | "careerGrowth";
+export type SignalType = "check" | "count" | "measure";
 
-export type GoalName = "Audience" | "Career" | "Body" | "Hair";
+/** One tracked thing. See mission.config.ts for what each field does. */
+export type SignalConfig = {
+  key: string;
+  label: string;
+  note?: string;
+  type: SignalType;
+  /** Which goal the points roll up into. Required unless type is "measure". */
+  goal?: string;
+  points?: number;
+  /** Daily target for a count. */
+  target?: number;
+  /** How much one press of + or − moves a number. */
+  step?: number;
+  unit?: string;
+  /** [threshold, points] pairs. Replaces proportional credit for a count. */
+  tiers?: [number, number][];
+  /** true: must be complete for the day to count. A number: a count must reach it. */
+  floor?: boolean | number;
+  /** Goal range drawn on a measure's trend. */
+  band?: [number, number];
+};
 
-export type DayLog = Record<BinaryKey, boolean> & {
-  jobs: number;
-  steps: number;
-  water: number;
-  xPosts?: number;
-  recovery: boolean;
-  weight?: number;
-  /** @deprecated v2 dropped waist tracking. Tolerated on read, never written. */
-  waist?: number;
+export type GoalConfig = { id: string; color: string };
+
+export type MissionConfig = {
+  days: number;
+  timezone: string;
+  locale: string;
+  honorific: string;
+  goals: GoalConfig[];
+  signals: SignalConfig[];
+};
+
+/** One day's record, keyed by signal. Checks hold booleans, the rest numbers. */
+export type DayLog = {
+  [key: string]: number | boolean | string | null | undefined;
   closedAt?: string | null;
 };
 
@@ -20,50 +43,4 @@ export type Logs = Record<string, DayLog>;
 
 export type SyncState = "local" | "saving" | "saved" | "error";
 
-/** Mission clock. Fixed for this challenge; not user-configurable. */
-export const START_DATE = "2026-08-07";
-export const WELLNESS_START_DATE = "2026-08-08";
-export const CONTENT_VOLUME_START_DATE = "2026-08-08";
-export const SKILL_GROWTH_START_DATE = "2026-08-08";
-export const WEIGHTED_SCORE_START_DATE = "2026-08-08";
-
-export const EMPTY_LOG: DayLog = {
-  x: false,
-  linkedin: false,
-  instagram: false,
-  cleanFood: false,
-  protein: false,
-  strength: false,
-  scalpMassage: false,
-  careerGrowth: false,
-  jobs: 0,
-  steps: 0,
-  water: 0,
-  recovery: false,
-};
-
-export const HABITS: { key: BinaryKey; label: string; note: string; group: GoalName }[] = [
-  { key: "x", label: "Post on X", note: "Build daily distribution", group: "Audience" },
-  { key: "linkedin", label: "Post on LinkedIn", note: "Build authority and opportunity", group: "Audience" },
-  { key: "instagram", label: "Post on Instagram", note: "Build the new channel", group: "Audience" },
-  { key: "careerGrowth", label: "Career opportunity block", note: "45 focused min · skill, project, interview prep or outreach", group: "Career" },
-  { key: "cleanFood", label: "Clean food only", note: "Whole foods, no junk", group: "Body" },
-  { key: "protein", label: "Protein target", note: "Hit your daily target", group: "Body" },
-  { key: "strength", label: "Kettlebell strength", note: "Complete the session", group: "Body" },
-  { key: "scalpMassage", label: "Scalp massage", note: "Daily consistency for healthier hair", group: "Hair" },
-];
-
-export const GOAL_COLORS: Record<GoalName, string> = {
-  Audience: "#78ddeb",
-  Career: "#68b99b",
-  Body: "#82b6d3",
-  Hair: "#718d9c",
-};
-
-/** Maximum weighted points each goal can contribute to a single day. */
-export const GOAL_TOTALS: Record<GoalName, number> = {
-  Audience: 35,
-  Career: 25,
-  Body: 30,
-  Hair: 10,
-};
+export const EMPTY_LOG: DayLog = {};
