@@ -103,7 +103,7 @@ export function SystemSector({
               }}>{copied ? "COPIED" : "COPY"}</button>
             </div>
             <small>Read-only. Body metrics are stripped. There is no write path on that route.</small>
-            <button type="button" className="ghost" onClick={() => { onRevokeShare(); sound.deny(); }}>REVOKE LINK</button>
+            <button type="button" className="ghost" onClick={() => { onRevokeShare(); sound.deny(); }}>REVOKE ALL LINKS</button>
           </>
         ) : (
           <>

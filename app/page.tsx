@@ -365,7 +365,15 @@ export default function Terminal() {
               onBackup={() => downloadBackup(buildBackup(logs, { startDate, jobSecuredOn, instagramStartedOn }), todayKey)}
               onRestore={handleRestore}
               shareUrl={shareUrl} onShare={generateShare}
-              onRevokeShare={() => { setShareUrl(null); setNotice("Share link revoked."); }}
+              onRevokeShare={() => {
+                void fetch("/api/share", { method: "DELETE" })
+                  .then((response) => {
+                    if (!response.ok) throw new Error("revoke failed");
+                    setShareUrl(null);
+                    setNotice("Every share link has been revoked.");
+                  })
+                  .catch(() => setNotice("Share links could not be revoked."));
+              }}
               sharing={sharing}
             />
           )}

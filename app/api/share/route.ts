@@ -58,3 +58,14 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
   return NextResponse.json({ url: `${origin}/dossier/${slug}` });
 }
+
+/** Revoking is real: every snapshot is deleted, so old links stop resolving. */
+export async function DELETE() {
+  if (!await hasClearance()) return NextResponse.json({ locked: true }, { status: 401 });
+  const admin = cloud();
+  if (!admin) return NextResponse.json({ error: "Sharing needs the cloud mirror" }, { status: 501 });
+  const { error } = await admin.from("shared_dossiers").delete().neq("token", "");
+  return error
+    ? NextResponse.json({ error: error.message }, { status: 500 })
+    : NextResponse.json({ revoked: true });
+}
